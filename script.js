@@ -34,7 +34,7 @@ function resetForm() {
   if (form) form.reset();
 }
 
-// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए (असली सर्वर एरर दिखाने के साथ)
+// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए
 async function handleCustomerSubmit(event) {
   event.preventDefault();
 
@@ -94,13 +94,11 @@ async function handleCustomerSubmit(event) {
     let result = {};
     try {
       result = await response.json();
-    } catch (e) {
-      // यदि रिस्पॉन्स JSON न हो
-    }
+    } catch (err) {}
 
     if (!response.ok || result.success === false) {
-      const serverMsg = result.message || result.error || HTTP Error ${response.status};
-      throw new Error("सर्वर एरर: " + serverMsg);
+      const serverMsg = result.message || result.error || "डेटा सेव करने में विफल।";
+      throw new Error(serverMsg);
     }
 
     resetForm();
