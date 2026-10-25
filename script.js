@@ -28,36 +28,18 @@ function formatMoney(value) {
   return "₹" + amount.toLocaleString("en-IN");
 }
 
-// टेबल रो बनाने के लिए
-function addRow(container, label, value) {
-  const row = document.createElement("p");
-  const strong = document.createElement("strong");
-
-  strong.textContent = label + ": ";
-  row.appendChild(strong);
-  row.appendChild(
-    document.createTextNode(
-      value === undefined || value === null || value === ""
-        ? "—"
-        : String(value)
-    )
-  );
-
-  container.appendChild(row);
-}
-
 // फॉर्म रीसेट
 function resetForm() {
   const form = document.getElementById("customerForm");
   if (form) form.reset();
 }
 
-// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए (सही फॉर्मेट और डीबगिंग के साथ)
+// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए (असली सर्वर एरर दिखाने के साथ)
 async function handleCustomerSubmit(event) {
   event.preventDefault();
 
-  const name = getValue("customerName");
-  const mobile = getValue("mobileNumber");
+  const name = getValue("customerName") || getValue("name") || getValue("fullName");
+  const mobile = getValue("mobileNumber") || getValue("mobile");
   const loanType = getValue("loanType");
   const loanAmount = getValue("loanAmount");
   const percentageText = getValue("percentage");
@@ -78,7 +60,6 @@ async function handleCustomerSubmit(event) {
     return;
   }
 
-  // सर्वर के अनुसार सभी जरूरी फील्ड्स का सही स्ट्रक्चर
   const customerData = {
     name: name,
     fullName: name,
@@ -95,7 +76,7 @@ async function handleCustomerSubmit(event) {
     accountHolderName: getValue("accountHolderName"),
     accountNumber: getValue("accountNumber"),
     ifscCode: getValue("ifscCode"),
-    upiId: getValue("upiNumber"),
+    upiId: getValue("upiId") || getValue("upiNumber"),
     status: "Pending"
   };
 
@@ -110,18 +91,23 @@ async function handleCustomerSubmit(event) {
       body: JSON.stringify(customerData)
     });
 
-    const result = await response.json();
-    console.log("Server Response:", result); // यह कंसोल में सर्वर का असली जवाब दिखाएगा
+    let result = {};
+    try {
+      result = await response.json();
+    } catch (e) {
+      // यदि रिस्पॉन्स JSON न हो
+    }
 
     if (!response.ok || result.success === false) {
-      throw new Error(result.message || "डेटा सेव करने में विफल।");
+      const serverMsg = result.message || result.error || HTTP Error ${response.status};
+      throw new Error("सर्वर एरर: " + serverMsg);
     }
 
     resetForm();
     setMessage("रिकॉर्ड सफलतापूर्वक सर्वर पर सेव हो गया!");
   } catch (error) {
     console.error("Save error:", error);
-    setMessage("रिकॉर्ड सेव नहीं हुआ। कृपया सर्वर कनेक्शन जाँचें।", "error");
+    setMessage(error.message || "रिकॉर्ड सेव नहीं हुआ। कृपया सर्वर कनेक्शन जाँचें।", "error");
   }
 }
 
@@ -174,6 +160,15 @@ async function checkStatus() {
     card.style.borderRadius = "10px";
     card.style.marginTop = "15px";
     card.style.background = "#fff";
+
+    const addRow = (container, label, value) => {
+      const row = document.createElement("p");
+      const strong = document.createElement("strong");
+      strong.textContent = label + ": ";
+      row.appendChild(strong);
+      row.appendChild(document.createTextNode(value === undefined || value === null || value === "" ? "—" : String(value)));
+      container.appendChild(row);
+    };
 
     addRow(card, "आवेदक का नाम", customer.name || customer.fullName);
     addRow(card, "Application ID", customer.applicationId || "—");
