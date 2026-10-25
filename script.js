@@ -52,7 +52,7 @@ function resetForm() {
   if (form) form.reset();
 }
 
-// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए
+// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए (credentials: "include" के साथ)
 async function handleCustomerSubmit(event) {
   event.preventDefault();
 
@@ -106,6 +106,7 @@ async function handleCustomerSubmit(event) {
       headers: {
         "Content-Type": "application/json"
       },
+      credentials: "include", // यह लाइन बहुत जरूरी है ताकि सर्वर ऑथेंटिकेशन पास हो जाए
       body: JSON.stringify(customerData)
     });
 
