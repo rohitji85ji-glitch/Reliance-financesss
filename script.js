@@ -101,7 +101,7 @@ async function handleCustomerSubmit(event) {
   try {
     setMessage("डेटा सेव हो रहा है...");
 
-    const response = await fetch(${API_BASE}/submit-application, {
+    const response = await fetch(API_BASE + "/submit-application", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -132,7 +132,7 @@ async function loadCustomers() {
   list.replaceChildren();
 
   try {
-    const response = await fetch(${API_BASE}/applications);
+    const response = await fetch(API_BASE + "/applications");
     if (!response.ok) return;
 
     const customers = await response.json();
@@ -157,7 +157,7 @@ async function loadCustomers() {
       addRow(card, "Loan Type", customer.loanType);
       addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
       addRow(card, "स्टेटस", customer.status || "Pending");
-      addRow(card, "Application Progress", ${customer.percentage || 0}%);
+      addRow(card, "Application Progress", (customer.percentage || 0) + "%");
       addRow(card, "अकाउंट नंबर", customer.accountNumber);
       addRow(card, "UPI ID", customer.upiId);
 
@@ -168,7 +168,7 @@ async function loadCustomers() {
   }
 }
 
-// 3. मोबाइल नंबर से चेक स्टेटस करने के लिए (सर्वर से डेटा लाने के लिए)
+// 3. मोबाइल नंबर से चेक स्टेटस करने के लिए
 async function checkStatus() {
   const mobileInput = document.getElementById("mobileNumber");
   const result = document.getElementById("statusResult");
@@ -186,10 +186,9 @@ async function checkStatus() {
   result.textContent = "जानकारी लोड हो रही है...";
 
   try {
-    // एक साथ एप्लीकेशन और बैंक डिटेल्स फेच करें
     const [appRes, accRes] = await Promise.all([
-      fetch(${API_BASE}/check-application?mobile=${encodeURIComponent(mobile)}),
-      fetch(${API_BASE}/account-details).catch(() => null)
+      fetch(API_BASE + "/check-application?mobile=" + encodeURIComponent(mobile)),
+      fetch(API_BASE + "/account-details").catch(() => null)
     ]);
 
     const data = await appRes.json();
@@ -201,12 +200,11 @@ async function checkStatus() {
 
     let customer = data.application;
 
-    // अगर ग्लोबल अकाउंट डिटेल्स हैं तो उन्हें भी जोड़ें
     if (accRes && accRes.ok) {
       const accData = await accRes.json();
       const details = accData.accountDetails || accData.data || accData;
       if (details) {
-        customer = { ...details, ...customer };
+        customer = Object.assign({}, details, customer);
       }
     }
 
@@ -224,7 +222,7 @@ async function checkStatus() {
     addRow(card, "Application ID", customer.applicationId || "—");
     addRow(card, "Loan Type", customer.loanType || "—");
     addRow(card, "आवेदन का स्टेटस", customer.status || "Pending");
-    addRow(card, "Application Progress", ${customer.percentage || 0}%);
+    addRow(card, "Application Progress", (customer.percentage || 0) + "%");
     addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
     addRow(card, "बैंक का नाम", customer.bankName);
     addRow(card, "खाताधारक का नाम", customer.accountHolderName);
