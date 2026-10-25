@@ -2,11 +2,13 @@
 
 const API_BASE = "https://reliance-finance.onrender.com";
 
+// वैल्यू सुरक्षित तरीके से पढ़ें
 function getValue(id) {
   const element = document.getElementById(id);
   return element ? element.value.trim() : "";
 }
 
+// मैसेज दिखाने के लिए
 function setMessage(message, type = "success") {
   const element = document.getElementById("adminMessage");
 
@@ -19,12 +21,14 @@ function setMessage(message, type = "success") {
   }
 }
 
+// रुपये का फॉर्मेट
 function formatMoney(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return "₹0";
   return "₹" + amount.toLocaleString("en-IN");
 }
 
+// टेबल रो बनाने के लिए
 function addRow(container, label, value) {
   const row = document.createElement("p");
   const strong = document.createElement("strong");
@@ -42,12 +46,13 @@ function addRow(container, label, value) {
   container.appendChild(row);
 }
 
+// फॉर्म रीसेट
 function resetForm() {
   const form = document.getElementById("customerForm");
   if (form) form.reset();
 }
 
-// 1. डेटा सबमिट करने के लिए
+// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए
 async function handleCustomerSubmit(event) {
   event.preventDefault();
 
@@ -110,7 +115,6 @@ async function handleCustomerSubmit(event) {
       throw new Error(result.message || "डेटा सेव करने में विफल।");
     }
 
-    loadCustomers();
     resetForm();
     setMessage("रिकॉर्ड सफलतापूर्वक सर्वर पर सेव हो गया!");
   } catch (error) {
@@ -119,7 +123,7 @@ async function handleCustomerSubmit(event) {
   }
 }
 
-// 2. एडमिन लिस्ट लोड करने के लिए (बिना credentials के)
+// 2. एडमिन लिस्ट लोड करने के लिए (401 एरर से बचने के लिए सुरक्षित तरीका)
 async function loadCustomers() {
   const list = document.getElementById("customerList");
   if (!list) return;
@@ -131,7 +135,12 @@ async function loadCustomers() {
       method: "GET"
     });
 
-    if (!response.ok) return;
+    if (!response.ok) {
+      const empty = document.createElement("p");
+      empty.textContent = "डेटा देखने के लिए कृपया एडमिन लॉगिन करें।";
+      list.appendChild(empty);
+      return;
+    }
 
     const customers = await response.json();
 
@@ -162,11 +171,11 @@ async function loadCustomers() {
       list.appendChild(card);
     });
   } catch (error) {
-    console.error("Load customers error:", error);
+    console.log("Admin list restricted or not logged in.");
   }
 }
 
-// 3. चेक स्टेटस के लिए
+// 3. मोबाइल नंबर से चेक स्टेटस करने के लिए
 async function checkStatus() {
   const mobileInput = document.getElementById("mobileNumber");
   const result = document.getElementById("statusResult");
@@ -237,6 +246,7 @@ async function checkStatus() {
 
 window.checkStatus = checkStatus;
 
+// स्क्रिप्ट इनिशियलाइज़ेशन
 function initializeScript() {
   const form = document.getElementById("customerForm");
   if (form) {
