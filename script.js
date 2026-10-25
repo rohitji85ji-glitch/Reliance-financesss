@@ -2,13 +2,11 @@
 
 const API_BASE = "https://reliance-finance.onrender.com";
 
-// वैल्यू सुरक्षित तरीके से पढ़ें
 function getValue(id) {
   const element = document.getElementById(id);
   return element ? element.value.trim() : "";
 }
 
-// मैसेज दिखाने के लिए
 function setMessage(message, type = "success") {
   const element = document.getElementById("adminMessage");
 
@@ -21,14 +19,12 @@ function setMessage(message, type = "success") {
   }
 }
 
-// रुपये का फॉर्मेट
 function formatMoney(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return "₹0";
   return "₹" + amount.toLocaleString("en-IN");
 }
 
-// टेबल रो बनाने के लिए
 function addRow(container, label, value) {
   const row = document.createElement("p");
   const strong = document.createElement("strong");
@@ -46,13 +42,12 @@ function addRow(container, label, value) {
   container.appendChild(row);
 }
 
-// फॉर्म रीसेट
 function resetForm() {
   const form = document.getElementById("customerForm");
   if (form) form.reset();
 }
 
-// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए (credentials: "include" के साथ)
+// 1. डेटा सबमिट करने के लिए
 async function handleCustomerSubmit(event) {
   event.preventDefault();
 
@@ -106,7 +101,6 @@ async function handleCustomerSubmit(event) {
       headers: {
         "Content-Type": "application/json"
       },
-      credentials: "include", // यह लाइन बहुत जरूरी है ताकि सर्वर ऑथेंटिकेशन पास हो जाए
       body: JSON.stringify(customerData)
     });
 
@@ -125,7 +119,7 @@ async function handleCustomerSubmit(event) {
   }
 }
 
-// 2. एडमिन पैनल में लिस्ट लोड करने के लिए (Authorization के साथ)
+// 2. एडमिन लिस्ट लोड करने के लिए (बिना credentials के)
 async function loadCustomers() {
   const list = document.getElementById("customerList");
   if (!list) return;
@@ -134,16 +128,8 @@ async function loadCustomers() {
 
   try {
     const response = await fetch(API_BASE + "/applications", {
-      method: "GET",
-      credentials: "include"
+      method: "GET"
     });
-
-    if (response.status === 401) {
-      const empty = document.createElement("p");
-      empty.textContent = "कृपया पहले एडमिन लॉगिन (Login) करें।";
-      list.appendChild(empty);
-      return;
-    }
 
     if (!response.ok) return;
 
@@ -180,7 +166,7 @@ async function loadCustomers() {
   }
 }
 
-// 3. मोबाइल नंबर से चेक स्टेटस करने के लिए
+// 3. चेक स्टेटस के लिए
 async function checkStatus() {
   const mobileInput = document.getElementById("mobileNumber");
   const result = document.getElementById("statusResult");
@@ -251,7 +237,6 @@ async function checkStatus() {
 
 window.checkStatus = checkStatus;
 
-// स्क्रिप्ट इनिशियलाइज़ेशन
 function initializeScript() {
   const form = document.getElementById("customerForm");
   if (form) {
