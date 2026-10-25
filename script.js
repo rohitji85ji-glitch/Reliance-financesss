@@ -1,380 +1,376 @@
 "use strict";
 
-const STORAGE_KEY = "finance_demo_customers";
-let editingCustomerId = null;
-
-function byId(id) {
-    return document.getElementById(id);
-}
-
-function field(id) {
-    const element = byId(id);
-    return element ? element.value.trim() : "";
-}
-
-function message(text, color = "#0757a8") {
-    const box = byId("adminMessage");
-    if (!box) {
-        alert(text);
-        return;
-    }
-
-    box.textContent = text;
-    box.style.color = color;
-    box.style.fontWeight = "bold";
-    box.style.marginTop = "12px";
-}
+const STORAGE_KEY = "relianceFinanceCustomers";
 
 function getCustomers() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [];
-
-        const data = JSON.parse(raw);
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        console.error("Reading records failed:", error);
-        message("डेटा पढ़ने में समस्या हुई।", "red");
-        return [];
-    }
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    const customers = data ? JSON.parse(data) : [];
+    return Array.isArray(customers) ? customers : [];
+  } catch (error) {
+    console.error("Customer data could not be read:", error);
+    return [];
+  }
 }
 
 function saveCustomers(customers) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(customers));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(customers));
+}
 
-        const check = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-        return Array.isArray(check) &&
-            check.length === customers.length;
-    } catch (error) {
-        console.error("Saving records failed:", error);
-        return false;
+function getValue(id) {
+  const element = document.getElementById(id);
+  return element ? element.value.trim() : "";
+}
+
+function setMessage(message, type = "success") {
+  const element = document.getElementById("adminMessage");
+
+  if (element) {
+    element.textContent = message;
+    element.style.color = type === "error" ? "#dc2626" : "#15803d";
+  } else {
+    alert(message);
+  }
+}
+
+function makeId() {
+  return "APP-" + Date.now().toString(36).toUpperCase();
+}
+
+function formatMoney(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "₹0";
+  return "₹" + amount.toLocaleString("en-IN");
+}
+
+function addRow(container, label, value) {
+  const row = document.createElement("p");
+  const strong = document.createElement("strong");
+
+  strong.textContent = label + ": ";
+  row.appendChild(strong);
+  row.appendChild(document.createTextNode(
+    value === undefined || value === null || value === ""
+      ? "—"
+      : String(value)
+  ));
+
+  container.appendChild(row);
+}
+
+function getForm() {
+  return document.getElementById("customerForm");
+}
+
+function resetForm() {
+  const form = getForm();
+  if (form) form.reset();
+
+  const idField = document.getElementById("editingId");
+  if (idField) idField.value = "";
+
+  const button = document.getElementById("saveButton") ||
+    (form && form.querySelector('button[type="submit"]'));
+
+  if (button) button.textContent = "Submit Customer";
+
+  const cancelButton = document.getElementById("cancelEditButton");
+  if (cancelButton) cancelButton.style.display = "none";
+}
+
+function handleCustomerSubmit(event) {
+  event.preventDefault();
+
+  const form = getForm();
+  if (!form) return;
+
+  const name = getValue("name");
+  const mobile = getValue("mobile");
+  const email = getValue("email");
+  const address = getValue("address");
+  const loanAmount = getValue("loanAmount");
+  const status = getValue("status") || "Pending";
+  const percentageText = getValue("percentage");
+  const percentage = percentageText === ""
+    ? 0
+    : Number(percentageText);
+
+  if (!name) {
+    setMessage("कृपया ग्राहक का नाम भरें।", "error");
+    return;
+  }
+
+  if (!/^\d{10}$/.test(mobile)) {
+    setMessage("मोबाइल नंबर 10 अंकों का होना चाहिए।", "error");
+    return;
+  }
+
+  if (
+    loanAmount !== "" &&
+    (!Number.isFinite(Number(loanAmount)) || Number(loanAmount) < 0)
+  ) {
+    setMessage("लोन राशि सही भरें।", "error");
+    return;
+  }
+
+  if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+    setMessage("Progress 0 से 100 के बीच भरें।", "error");
+    return;
+  }
+
+  const customer = {
+    name,
+    mobile,
+    email,
+    address,
+    loanAmount: loanAmount === "" ? "0" : loanAmount,
+    status,
+    percentage,
+    applicationId: getValue("applicationId") || makeId(),
+    accountHolderName: getValue("accountHolderName"),
+    bankName: getValue("bankName"),
+    accountNumber: getValue("accountNumber"),
+    ifsc: getValue("ifsc"),
+    upiId: getValue("upiId"),
+    tds: getValue("tds"),
+    rbiCharge: getValue("rbiCharge"),
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    const customers = getCustomers();
+    const editingId = getValue("editingId");
+
+    if (editingId) {
+      const index = customers.findIndex(
+        item => item.applicationId === editingId
+      );
+
+      if (index === -1) {
+        setMessage("एडिट वाला रिकॉर्ड नहीं मिला।", "error");
+        return;
+      }
+
+      customer.applicationId = editingId;
+      customers[index] = {
+        ...customers[index],
+        ...customer
+      };
+    } else {
+      const duplicate = customers.find(
+        item => item.mobile === mobile
+      );
+
+      if (duplicate) {
+        setMessage(
+          "इस मोबाइल नंबर का रिकॉर्ड पहले से है। एडिट करके अपडेट करें।",
+          "error"
+        );
+        return;
+      }
+
+      customers.unshift(customer);
     }
-}
 
-function amount(value) {
-    const number = Number(value || 0);
-    return Number.isFinite(number)
-        ? "₹" + number.toLocaleString("en-IN")
-        : "₹0";
-}
+    saveCustomers(customers);
+    resetForm();
+    loadCustomers();
 
-function addRow(parent, label, value) {
-    const p = document.createElement("p");
-    const strong = document.createElement("strong");
-    strong.textContent = label + ": ";
-    const span = document.createElement("span");
-    span.textContent = String(value ?? "-");
-    p.append(strong, span);
-    parent.appendChild(p);
-}
-
-function newId() {
-    return Date.now().toString(36) +
-        Math.random().toString(36).slice(2, 9);
+    setMessage("रिकॉर्ड सफलतापूर्वक सेव हो गया।");
+  } catch (error) {
+    console.error(error);
+    setMessage(
+      "रिकॉर्ड सेव नहीं हुआ। ब्राउज़र की स्टोरेज सेटिंग जाँचें।",
+      "error"
+    );
+  }
 }
 
 function loadCustomers() {
-    const list = byId("customerList");
-    if (!list) return;
+  const list = document.getElementById("customerList");
+  if (!list) return;
 
-    const customers = getCustomers();
-    list.replaceChildren();
+  list.replaceChildren();
 
-    if (customers.length === 0) {
-        list.textContent = "अभी कोई डेमो रिकॉर्ड सेव नहीं है।";
-        return;
-    }
+  const customers = getCustomers();
 
-    customers.forEach(customer => {
-        const card = document.createElement("article");
-        card.className = "customer-record";
+  if (customers.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = "अभी कोई रिकॉर्ड उपलब्ध नहीं है।";
+    list.appendChild(empty);
+    return;
+  }
 
-        const heading = document.createElement("h3");
-        heading.textContent = customer.customer_name || "Customer";
-        card.appendChild(heading);
+  customers.forEach(customer => {
+    const card = document.createElement("div");
+    card.className = "customer-card";
 
-        addRow(card, "Mobile", customer.mobile_number);
-        addRow(card, "Loan Type", customer.loan_type);
-        addRow(card, "Loan Amount", amount(customer.loan_amount));
-        addRow(card, "Return Period", customer.return_year || "-");
-        addRow(card, "Charge Type", customer.charge || "-");
-        addRow(
-            card,
-            "Charge Amount",
-            customer.charge_amount === ""
-                ? "-"
-                : amount(customer.charge_amount)
-        );
-        addRow(card, "Progress", ${customer.percentage || 0}%);
-        addRow(card, "Bank Name (Demo)", customer.bank_name || "-");
-        addRow(
-            card,
-            "Account Holder (Demo)",
-            customer.account_holder_name || "-"
-        );
-        addRow(
-            card,
-            "Account Number",
-            customer.account_number
-                ? "••••" + String(customer.account_number).slice(-4)
-                : "-"
-        );
-        addRow(
-            card,
-            "IFSC",
-            customer.ifsc_code
-                ? "••••••" + String(customer.ifsc_code).slice(-2)
-                : "-"
-        );
-        addRow(
-            card,
-            "UPI",
-            customer.upi_number ? "Hidden for privacy" : "-"
-        );
+    addRow(card, "नाम", customer.name);
+    addRow(card, "मोबाइल", customer.mobile);
+    addRow(card, "Application ID", customer.applicationId);
+    addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
+    addRow(card, "स्टेटस", customer.status);
+    addRow(card, "Progress", ${customer.percentage || 0}%);
 
-        const edit = document.createElement("button");
-        edit.type = "button";
-        edit.textContent = "Edit Demo Record";
-        edit.addEventListener("click", () => editCustomer(customer.id));
-        card.appendChild(edit);
-
-        list.appendChild(card);
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "Edit";
+    editButton.addEventListener("click", () => {
+      editCustomer(customer.applicationId);
     });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => {
+      deleteCustomer(customer.applicationId);
+    });
+
+    card.appendChild(editButton);
+    card.appendChild(deleteButton);
+    list.appendChild(card);
+  });
 }
 
-function resetEditState() {
-    editingCustomerId = null;
+function editCustomer(applicationId) {
+  const customer = getCustomers().find(
+    item => item.applicationId === applicationId
+  );
 
-    const form = byId("customerForm");
-    const saveButton = byId("saveButton");
-    const cancelButton = byId("cancelEditButton");
+  if (!customer) {
+    setMessage("रिकॉर्ड नहीं मिला।", "error");
+    return;
+  }
 
-    if (form) form.reset();
-    if (saveButton) saveButton.textContent = "Save Demo Record";
-    if (cancelButton) cancelButton.hidden = true;
+  const fieldMap = {
+    name: "name",
+    mobile: "mobile",
+    email: "email",
+    address: "address",
+    loanAmount: "loanAmount",
+    status: "status",
+    percentage: "percentage",
+    applicationId: "applicationId",
+    accountHolderName: "accountHolderName",
+    bankName: "bankName",
+    accountNumber: "accountNumber",
+    ifsc: "ifsc",
+    upiId: "upiId",
+    tds: "tds",
+    rbiCharge: "rbiCharge"
+  };
+
+  Object.entries(fieldMap).forEach(([key, id]) => {
+    const field = document.getElementById(id);
+    if (field) field.value = customer[key] ?? "";
+  });
+
+  let idField = document.getElementById("editingId");
+
+  if (!idField) {
+    idField = document.createElement("input");
+    idField.type = "hidden";
+    idField.id = "editingId";
+    idField.name = "editingId";
+    getForm().appendChild(idField);
+  }
+
+  idField.value = customer.applicationId;
+
+  const button = document.getElementById("saveButton") ||
+    getForm().querySelector('button[type="submit"]');
+
+  if (button) button.textContent = "Update Customer";
+
+  const cancelButton = document.getElementById("cancelEditButton");
+  if (cancelButton) cancelButton.style.display = "inline-block";
+
+  setMessage("अब जानकारी बदलकर Update Customer दबाएँ।");
+
+  getForm().scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
 
-function editCustomer(id) {
-    const customer = getCustomers().find(
-        item => String(item.id) === String(id)
+function deleteCustomer(applicationId) {
+  if (!confirm("क्या आप यह रिकॉर्ड हटाना चाहते हैं?")) return;
+
+  try {
+    const customers = getCustomers().filter(
+      item => item.applicationId !== applicationId
     );
 
-    if (!customer) {
-        message("रिकॉर्ड नहीं मिला।", "red");
-        return;
-    }
-
-    const mapping = {
-        customerName: "customer_name",
-        mobileNumber: "mobile_number",
-        loanType: "loan_type",
-        loanAmount: "loan_amount",
-        aadhaarLast4: "aadhaar_last4",
-        panLast4: "pan_last4",
-        returnYear: "return_year",
-        charge: "charge",
-        chargeAmount: "charge_amount",
-        percentage: "percentage",
-        bankName: "bank_name",
-        accountHolderName: "account_holder_name",
-        accountNumber: "account_number",
-        ifscCode: "ifsc_code",
-        upiNumber: "upi_number"
-    };
-
-    Object.entries(mapping).forEach(([elementId, property]) => {
-        const element = byId(elementId);
-        if (element) element.value = customer[property] ?? "";
-    });
-
-    editingCustomerId = customer.id;
-
-    const saveButton = byId("saveButton");
-    const cancelButton = byId("cancelEditButton");
-
-    if (saveButton) saveButton.textContent = "Update Demo Record";
-    if (cancelButton) cancelButton.hidden = false;
-
-    message("रिकॉर्ड एडिट करने के लिए लोड हो गया।");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function initAdmin() {
-    const form = byId("customerForm");
-    if (!form) return;
-
-    form.addEventListener("submit", function (event) {
-        event.preventDefault();
-
-        const customer = {
-            customer_name: field("customerName"),
-            mobile_number: field("mobileNumber"),
-            loan_type: field("loanType"),
-            loan_amount: field("loanAmount"),
-            aadhaar_last4: field("aadhaarLast4"),
-            pan_last4: field("panLast4"),
-            return_year: field("returnYear"),
-            charge: field("charge"),
-            charge_amount: field("chargeAmount"),
-            percentage: field("percentage") || "0",
-            bank_name: field("bankName"),
-            account_holder_name: field("accountHolderName"),
-            account_number: field("accountNumber"),
-            ifsc_code: field("ifscCode"),
-            upi_number: field("upiNumber")
-        };
-
-        if (!customer.customer_name) {
-            message("Customer Name भरें।", "red");
-            return;
-        }
-
-        if (!/^[0-9]{10}$/.test(customer.mobile_number)) {
-            message("10 अंकों का मोबाइल नंबर भरें।", "red");
-            return;
-        }
-
-        if (
-            customer.loan_amount === "" ||
-            !Number.isFinite(Number(customer.loan_amount)) ||
-            Number(customer.loan_amount) < 0
-        ) {
-            message("सही Loan Amount भरें।", "red");
-            return;
-        }
-
-        const progress = Number(customer.percentage);
-        if (!Number.isFinite(progress) || progress < 0 || progress > 100) {
-            message("Progress 0 से 100 के बीच रखें।", "red");
-            return;
-        }
-
-        if (
-            customer.charge_amount !== "" &&
-            (
-                !Number.isFinite(Number(customer.charge_amount)) ||
-                Number(customer.charge_amount) < 0
-            )
-        ) {
-            message("सही Charge Amount भरें।", "red");
-            return;
-        }
-
-        const customers = getCustomers();
-
-        if (editingCustomerId !== null) {
-            const index = customers.findIndex(
-                item => String(item.id) === String(editingCustomerId)
-            );
-
-            if (index === -1) {
-                message("एडिट रिकॉर्ड नहीं मिला।", "red");
-                return;
-            }
-
-            customer.id = customers[index].id;
-            customer.submitted_at = customers[index].submitted_at;
-            customers[index] = { ...customers[index], ...customer };
-        } else {
-            customer.id = newId();
-            customer.submitted_at = new Date().toISOString();
-            customers.unshift(customer);
-        }
-
-        if (!saveCustomers(customers)) {
-            message(
-                "डेटा सेव नहीं हुआ। ब्राउज़र की Storage या Private mode चेक करें।",
-                "red"
-            );
-            return;
-        }
-
-        resetEditState();
-        loadCustomers();
-        message("डेमो रिकॉर्ड सफलतापूर्वक सेव हो गया।", "green");
-    });
-
-    const cancelButton = byId("cancelEditButton");
-    if (cancelButton) {
-        cancelButton.addEventListener("click", () => {
-            resetEditState();
-            message("एडिट रद्द किया गया।");
-        });
-    }
+    saveCustomers(customers);
+    loadCustomers();
+    setMessage("रिकॉर्ड हटा दिया गया।");
+  } catch (error) {
+    console.error(error);
+    setMessage("रिकॉर्ड हटाया नहीं जा सका।", "error");
+  }
 }
 
 function checkStatus() {
-    const mobileInput = byId("mobileNumber");
-    const result = byId("statusResult");
+  const mobileInput = document.getElementById("mobileNumber");
+  const result = document.getElementById("statusResult");
 
-    if (!mobileInput || !result) return;
+  if (!mobileInput || !result) {
+    console.error("Status page fields are missing.");
+    return;
+  }
 
-    const mobile = mobileInput.value.trim();
+  const mobile = mobileInput.value.trim();
+  result.replaceChildren();
 
-    if (!/^[0-9]{10}$/.test(mobile)) {
-        result.textContent = "10 अंकों का सही मोबाइल नंबर भरें।";
-        return;
-    }
+  if (!/^\d{10}$/.test(mobile)) {
+    result.textContent = "कृपया सही 10 अंकों का मोबाइल नंबर डालें।";
+    return;
+  }
 
-    const customer = getCustomers().find(
-        item => String(item.mobile_number) === mobile
-    );
+  const customer = getCustomers().find(
+    item => item.mobile === mobile
+  );
 
-    if (!customer) {
-        result.textContent = "कोई डेमो आवेदन नहीं मिला।";
-        return;
-    }
+  if (!customer) {
+    result.textContent = "इस मोबाइल नंबर से कोई आवेदन नहीं मिला।";
+    return;
+  }
 
-    const card = document.createElement("div");
-    card.className = "status-card";
+  const card = document.createElement("div");
+  card.className = "status-card";
 
-    const heading = document.createElement("h3");
-    heading.textContent = "Demo Application Status";
-    card.appendChild(heading);
+  addRow(card, "आवेदक का नाम", customer.name);
+  addRow(card, "Application ID", customer.applicationId);
+  addRow(card, "आवेदन का स्टेटस", customer.status);
+  addRow(card, "Application Progress", ${customer.percentage || 0}%);
+  addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
 
-    addRow(card, "Customer", customer.customer_name);
-    addRow(card, "Mobile", customer.mobile_number);
-    addRow(card, "Loan Type", customer.loan_type);
-    addRow(card, "Loan Amount", amount(customer.loan_amount));
-    addRow(card, "Return Period", customer.return_year || "-");
-    addRow(card, "Charge Type", customer.charge || "-");
-    addRow(
-        card,
-        "Charge Amount",
-        customer.charge_amount === ""
-            ? "-"
-            : amount(customer.charge_amount)
-    );
-    addRow(card, "Application Progress", ${customer.percentage || 0}%);
-
-    const progress = document.createElement("progress");
-    progress.max = 100;
-    progress.value = Math.max(
-        0,
-        Math.min(100, Number(customer.percentage) || 0)
-    );
-    progress.style.width = "100%";
-    card.appendChild(progress);
-
-    const notice = document.createElement("p");
-    notice.textContent =
-        "Demo only. This is not a real loan approval or payment request.";
-    card.appendChild(notice);
-
-    result.replaceChildren(card);
+  result.appendChild(card);
 }
 
-function initApp() {
-    initAdmin();
-    loadCustomers();
+window.checkStatus = checkStatus;
+window.editCustomer = editCustomer;
+window.deleteCustomer = deleteCustomer;
 
-    // Status page button can use onclick="checkStatus()".
-    window.checkStatus = checkStatus;
+function initializeScript() {
+  const form = getForm();
+
+  if (form) {
+    form.addEventListener("submit", handleCustomerSubmit);
+  }
+
+  const cancelButton = document.getElementById("cancelEditButton");
+
+  if (cancelButton) {
+    cancelButton.addEventListener("click", resetForm);
+    cancelButton.style.display = "none";
+  }
+
+  loadCustomers();
 }
 
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initApp);
+  document.addEventListener("DOMContentLoaded", initializeScript);
 } else {
-    initApp();
+  initializeScript();
 }
