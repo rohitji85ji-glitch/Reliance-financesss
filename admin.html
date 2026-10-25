@@ -1,360 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Admin Panel -  PM Mudra Yojana</title>
-
+    <title>Admin Panel - Finance Demo</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
 <header class="top-header">
-
     <div class="logo-area">
-
-        <div class="finance-logo">
-            <span>R</span>
-            <small>▮▮▮</small>
-        </div>
-
+        <div class="finance-logo"><span>R</span><small>▮▮▮</small></div>
         <div>
-            <h1> PM Mudra Yojana</h1>
+            <h1>Finance Demo</h1>
             <p>Admin Panel</p>
         </div>
-
     </div>
-
 </header>
 
-
 <nav class="main-nav">
-
     <a href="index.html">Home</a>
-
-    <a href="personal-loan.html">
-        Personal Loan
-    </a>
-
-    <a href="business-loan.html">
-        Business Loan
-    </a>
-
-    <a href="home-loan.html">
-        Home Loan
-    </a>
-
-    <a href="status.html">
-        Check Status
-    </a>
-
+    <a href="personal-loan.html">Personal Loan</a>
+    <a href="business-loan.html">Business Loan</a>
+    <a href="home-loan.html">Home Loan</a>
+    <a href="status.html">Check Status</a>
 </nav>
 
-
-<!-- CUSTOMER FORM -->
-
 <section class="admin-section">
-
     <div class="admin-box">
-
-        <h2>Customer Details</h2>
-
+        <h2>Customer Details (Demo)</h2>
 
         <form id="customerForm">
+            <label for="customerName">Customer Name</label>
+            <input id="customerName" type="text" required>
 
+            <label for="mobileNumber">Mobile Number</label>
+            <input id="mobileNumber" type="tel" inputmode="numeric"
+                   maxlength="10" pattern="[0-9]{10}" required>
 
-            <label>Customer Name</label>
-
-            <input
-                type="text"
-                id="customerName"
-                placeholder="Enter Customer Name"
-                required
-            >
-
-
-            <label>Mobile Number</label>
-
-            <input
-                type="tel"
-                id="mobileNumber"
-                placeholder="Enter 10 Digit Mobile Number"
-                maxlength="10"
-                inputmode="numeric"
-                required
-            >
-
-
-            <label>Loan Type</label>
-
+            <label for="loanType">Loan Type</label>
             <select id="loanType" required>
-
-                <option value="">
-                    Select Loan Type
-                </option>
-
-                <option value="Personal Loan">
-                    Personal Loan
-                </option>
-
-                <option value="Business Loan">
-                    Business Loan
-                </option>
-
-                <option value="Home Loan">
-                    Home Loan
-                </option>
-
-                <option value="Education Loan">
-                    Education Loan
-                </option>
-
-                <option value="Vehicle Loan">
-                    Vehicle Loan
-                </option>
-
-                <option value="Gold Loan">
-                    Gold Loan
-                </option>
-
+                <option value="">Select Loan Type</option>
+                <option>Personal Loan</option>
+                <option>Business Loan</option>
+                <option>Home Loan</option>
+                <option>Education Loan</option>
+                <option>Vehicle Loan</option>
+                <option>Gold Loan</option>
             </select>
 
+            <label for="loanAmount">Loan Amount (Demo)</label>
+            <input id="loanAmount" type="number" min="0" step="any" required>
 
-            <label>Loan Amount</label>
+            <label for="aadhaarLast4">Aadhaar Last 4 Digits (Optional)</label>
+            <input id="aadhaarLast4" type="text" maxlength="4"
+                   inputmode="numeric" autocomplete="off">
 
-            <input
-                type="number"
-                id="loanAmount"
-                placeholder="Enter Loan Amount"
-                min="0"
-                required
-            >
+            <label for="panLast4">PAN Last 4 Characters (Optional)</label>
+            <input id="panLast4" type="text" maxlength="4" autocomplete="off">
 
+            <label for="returnYear">Return Period</label>
+            <input id="returnYear" type="text" placeholder="Example: 2 Years">
 
-            <label>
-                Aadhaar Card - Last 4 Digits
-            </label>
-
-            <input
-                type="text"
-                id="aadhaarLast4"
-                placeholder="Last 4 Digits"
-                maxlength="4"
-                inputmode="numeric"
-            >
-
-
-            <label>
-                PAN Card - Last 4 Characters
-            </label>
-
-            <input
-                type="text"
-                id="panLast4"
-                placeholder="Last 4 Characters"
-                maxlength="4"
-            >
-
-
-            <label>Return Period</label>
-
-            <input
-                type="text"
-                id="returnYear"
-                placeholder="Example: 2 Years / 6 Months"
-            >
-
-
-            <label>Charge</label>
-
+            <label for="charge">Charge Type (Demo Only)</label>
             <select id="charge">
-
-                <option value="">
-                    Select Charge
-                </option>
-
-                <option value="NOC Charge">
-                    NOC Charge
-                </option>
-
-                <option value="TDS">
-                    TDS
-                </option>
-
-                <option value="RBI Charge">
-                    RBI Charge
-                </option>
-
-                <option value="Account Hold Charge">
-                    Account Hold Charge
-                </option>
-
-                <option value="Processing Charge">
-                    Processing Charge
-                </option>
-
-                <option value="Verification Charge">
-                    Verification Charge
-                </option>
-
-                <option value="Documentation Charge">
-                    Documentation Charge
-                </option>
-
-                <option value="GST">
-                    GST
-                </option>
-
-                <option value="Insurance Charge">
-                    Insurance Charge
-                </option>
-
-                <option value="Other Charge">
-                    Other Charge
-                </option>
-
+                <option value="">Select Charge</option>
+                <option>NOC Charge</option>
+                <option>TDS</option>
+                <option>RBI Charge</option>
+                <option>Processing Charge</option>
+                <option>Verification Charge</option>
+                <option>Documentation Charge</option>
+                <option>GST</option>
+                <option>Other Charge</option>
             </select>
 
+            <label for="chargeAmount">Charge Amount (Demo)</label>
+            <input id="chargeAmount" type="number" min="0" step="any">
 
-            <label>Charge Amount</label>
+            <label for="percentage">Application Progress (%)</label>
+            <input id="percentage" type="number" min="0" max="100"
+                   step="1" value="0" required>
 
-            <input
-                type="number"
-                id="chargeAmount"
-                placeholder="Enter Charge Amount"
-                min="0"
-            >
+            <h3 class="admin-subtitle">Bank Details (Demo Only)</h3>
 
+            <label for="bankName">Bank Name</label>
+            <input id="bankName" type="text" autocomplete="off">
 
-            <label>Application Progress</label>
+            <label for="accountHolderName">Account Holder Name</label>
+            <input id="accountHolderName" type="text" autocomplete="off">
 
-            <input
-                type="number"
-                id="percentage"
-                placeholder="Example: 90"
-                min="0"
-                max="100"
-            >
+            <label for="accountNumber">Demo Account Number</label>
+            <input id="accountNumber" type="text" autocomplete="off">
 
-            <small>
-                Status page पर यही progress percentage दिखाई जाएगी।
-            </small>
+            <label for="ifscCode">Demo IFSC</label>
+            <input id="ifscCode" type="text" autocomplete="off">
 
+            <label for="upiNumber">Demo UPI ID</label>
+            <input id="upiNumber" type="text" autocomplete="off">
 
-            <h3 class="admin-subtitle">
-                Bank Account Details
-            </h3>
-
-
-            <label>Bank Name</label>
-
-            <input
-                type="text"
-                id="bankName"
-                placeholder="Enter Bank Name"
-            >
-
-
-            <label>Account Holder Name</label>
-
-            <input
-                type="text"
-                id="accountHolderName"
-                placeholder="Enter Account Holder Name"
-            >
-
-
-            <label>Account Number</label>
-
-            <input
-                type="text"
-                id="accountNumber"
-                placeholder="Demo Account Number"
-            >
-
-
-            <label>IFSC Code</label>
-
-            <input
-                type="text"
-                id="ifscCode"
-                placeholder="Example: DEMO0000000"
-            >
-
-
-            <label>UPI ID</label>
-
-            <input
-                type="text"
-                id="upiNumber"
-                placeholder="Demo UPI ID"
-            >
-
-
-            <button type="submit">
-                Submit Customer
+            <button id="saveButton" type="submit">Save Demo Record</button>
+            <button id="cancelEditButton" type="button" hidden>
+                Cancel Edit
             </button>
-
-
         </form>
 
-
-        <div id="adminMessage"></div>
-
+        <p id="adminMessage" role="status" aria-live="polite"></p>
     </div>
-
 </section>
-
-
-<!-- SUBMITTED CUSTOMERS -->
 
 <section class="admin-section">
-
     <div class="admin-box">
-
-        <h2>Submitted Customers</h2>
-
-        <div id="customerList">
-
-            <p>
-                No customer data available.
-            </p>
-
-        </div>
-
+        <h2>Saved Demo Records</h2>
+        <div id="customerList">Loading records...</div>
     </div>
-
 </section>
-
 
 <section class="admin-notice">
-
-    <p>
-
-        <b>Demo Website:</b>
-
-        Do not enter real Aadhaar, PAN,
-        bank or payment information.
-
-    </p>
-
+    <p><strong>Demo only:</strong> This website does not process or approve real loans. Do not enter real Aadhaar, PAN, bank credentials or payment details. Do not use demo charges to request real payments.</p>
 </section>
 
+<footer><p>Finance Demo</p></footer>
 
-<footer>
-
-    <p>
-         PM Mudra Yojana
-    </p>
-
-</footer>
-
-
-<script src="script.js"></script>
-
+<script src="./script.js" defer></script>
 </body>
-
 </html>
