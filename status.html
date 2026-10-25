@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Check Status - PM Mudra Yojna</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- QR CODE LIBRARY -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+</head>
+
+<body>
+
+<header class="top-header">
+
+    <div class="logo-area">
+
+        <div class="finance-logo">
+            <span>R</span>
+            <small>FINANCE</small>
+        </div>
+
+        <div class="logo-text">
+
+            <h1>
+                PM Mudra Yojna
+            </h1>
+
+            <p>
+                Loan Information &amp; Services
+            </p>
+
+        </div>
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+            aria-label="Open Menu">
+
+            ☰
+
+        </button>
+
+    </div>
+
+</header>
+
+
+<nav class="main-nav" id="mainNav">
+
+    <a href="index.html">
+        Home
+    </a>
+
+    <a href="personal-loan.html">
+        Personal Loan
+    </a>
+
+    <a href="business-loan.html">
+        Business Loan
+    </a>
+
+    <a href="home-loan.html">
+        Home Loan
+    </a>
+
+    <a href="status.html" class="active">
+        Check Status
+    </a>
+
+</nav>
+
+
+<main class="status-section">
+
+    <div class="status-box">
+
+        <h2>
+            Check Application Status
+        </h2>
+
+        <p>
+            Enter your registered mobile number
+            to check application information.
+        </p>
+
+
+        <input
+            type="tel"
+            id="mobileNumber"
+            placeholder="Enter 10 digit mobile number"
+            maxlength="10"
+            inputmode="numeric"
+            autocomplete="tel"
+        >
+
+
+        <button
+            type="button"
+            onclick="checkStatus()">
+
+            Check Status
+
+        </button>
+
+
+        <div id="statusResult"></div>
+
+    </div>
+
+</main>
+
+
+<div class="admin-notice">
+
+    <strong>
+        Demo Website:
+    </strong>
+
+    This website is for demonstration and
+    testing only. No real loan application
+    or financial transaction is processed
+    through this website.
+
+</div>
+
+
+<footer>
+
+    <p>
+        © 2026 PM Mudra Yojna
+    </p>
+
+    <p>
+        Application information for
+        demonstration purposes.
+    </p>
+
+</footer>
+
+
+<script src="script.js"></script>
+
+</body>
+
+</html>
