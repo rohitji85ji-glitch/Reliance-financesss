@@ -124,7 +124,7 @@ async function handleCustomerSubmit(event) {
   }
 }
 
-// 2. एडमिन पैनल में लिस्ट लोड करने के लिए
+// 2. एडमिन पैनल में लिस्ट लोड करने के लिए (Authorization के साथ)
 async function loadCustomers() {
   const list = document.getElementById("customerList");
   if (!list) return;
@@ -132,7 +132,18 @@ async function loadCustomers() {
   list.replaceChildren();
 
   try {
-    const response = await fetch(API_BASE + "/applications");
+    const response = await fetch(API_BASE + "/applications", {
+      method: "GET",
+      credentials: "include"
+    });
+
+    if (response.status === 401) {
+      const empty = document.createElement("p");
+      empty.textContent = "कृपया पहले एडमिन लॉगिन (Login) करें।";
+      list.appendChild(empty);
+      return;
+    }
+
     if (!response.ok) return;
 
     const customers = await response.json();
