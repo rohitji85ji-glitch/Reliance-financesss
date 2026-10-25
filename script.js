@@ -52,7 +52,7 @@ function resetForm() {
   if (form) form.reset();
 }
 
-// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए
+// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए (सही फॉर्मेट और डीबगिंग के साथ)
 async function handleCustomerSubmit(event) {
   event.preventDefault();
 
@@ -78,6 +78,7 @@ async function handleCustomerSubmit(event) {
     return;
   }
 
+  // सर्वर के अनुसार सभी जरूरी फील्ड्स का सही स्ट्रक्चर
   const customerData = {
     name: name,
     fullName: name,
@@ -110,6 +111,7 @@ async function handleCustomerSubmit(event) {
     });
 
     const result = await response.json();
+    console.log("Server Response:", result); // यह कंसोल में सर्वर का असली जवाब दिखाएगा
 
     if (!response.ok || result.success === false) {
       throw new Error(result.message || "डेटा सेव करने में विफल।");
