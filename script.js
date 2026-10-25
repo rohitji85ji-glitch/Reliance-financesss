@@ -123,59 +123,7 @@ async function handleCustomerSubmit(event) {
   }
 }
 
-// 2. एडमिन लिस्ट लोड करने के लिए (401 एरर से बचने के लिए सुरक्षित तरीका)
-async function loadCustomers() {
-  const list = document.getElementById("customerList");
-  if (!list) return;
-
-  list.replaceChildren();
-
-  try {
-    const response = await fetch(API_BASE + "/applications", {
-      method: "GET"
-    });
-
-    if (!response.ok) {
-      const empty = document.createElement("p");
-      empty.textContent = "डेटा देखने के लिए कृपया एडमिन लॉगिन करें।";
-      list.appendChild(empty);
-      return;
-    }
-
-    const customers = await response.json();
-
-    if (!Array.isArray(customers) || customers.length === 0) {
-      const empty = document.createElement("p");
-      empty.textContent = "अभी कोई रिकॉर्ड उपलब्ध नहीं है।";
-      list.appendChild(empty);
-      return;
-    }
-
-    customers.forEach(customer => {
-      const card = document.createElement("div");
-      card.className = "customer-card";
-      card.style.border = "1px solid #ddd";
-      card.style.padding = "15px";
-      card.style.margin = "10px 0";
-      card.style.borderRadius = "8px";
-
-      addRow(card, "नाम", customer.name || customer.fullName);
-      addRow(card, "मोबाइल", customer.mobile);
-      addRow(card, "Loan Type", customer.loanType);
-      addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
-      addRow(card, "स्टेटस", customer.status || "Pending");
-      addRow(card, "Application Progress", (customer.percentage || 0) + "%");
-      addRow(card, "अकाउंट नंबर", customer.accountNumber);
-      addRow(card, "UPI ID", customer.upiId);
-
-      list.appendChild(card);
-    });
-  } catch (error) {
-    console.log("Admin list restricted or not logged in.");
-  }
-}
-
-// 3. मोबाइल नंबर से चेक स्टेटस करने के लिए
+// 2. मोबाइल नंबर से चेक स्टेटस करने के लिए
 async function checkStatus() {
   const mobileInput = document.getElementById("mobileNumber");
   const result = document.getElementById("statusResult");
@@ -252,7 +200,6 @@ function initializeScript() {
   if (form) {
     form.addEventListener("submit", handleCustomerSubmit);
   }
-  loadCustomers();
 }
 
 if (document.readyState === "loading") {
