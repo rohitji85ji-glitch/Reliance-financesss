@@ -246,7 +246,7 @@ function loadCustomers() {
     addRow(card, "Loan Type", customer.loanType);
     addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
     addRow(card, "स्टेटस", customer.status);
-    addRow(card, "Progress", ${customer.percentage || 0}%);
+    addRow(card, "Application Progress", ${customer.percentage || 0}%);
 
     const editButton = document.createElement("button");
     editButton.type = "button";
