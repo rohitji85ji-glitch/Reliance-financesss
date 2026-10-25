@@ -1,47 +1,24 @@
 "use strict";
 
-const STORAGE_KEY = "relianceFinanceCustomers";
+const API_BASE = "https://reliance-finance.onrender.com";
 
-// HTML से सुरक्षित तरीके से वैल्यू पढ़ें
+// वैल्यू सुरक्षित तरीके से पढ़ें
 function getValue(id) {
   const element = document.getElementById(id);
   return element ? element.value.trim() : "";
 }
 
-// सेव किया गया डेटा पढ़ें
-function getCustomers() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    const customers = data ? JSON.parse(data) : [];
-    return Array.isArray(customers) ? customers : [];
-  } catch (error) {
-    console.error("Data read error:", error);
-    return [];
-  }
-}
-
-// डेटा सेव करें
-function saveCustomers(customers) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(customers));
-}
-
-// संदेश दिखाएँ
+// मैसेज दिखाने के लिए
 function setMessage(message, type = "success") {
   const element = document.getElementById("adminMessage");
 
   if (element) {
     element.textContent = message;
-    element.style.color =
-      type === "error" ? "#dc2626" : "#15803d";
+    element.style.color = type === "error" ? "#dc2626" : "#15803d";
   } else {
     const result = document.getElementById("statusResult");
     if (result) result.textContent = message;
   }
-}
-
-// नया Application ID बनाएँ
-function makeId() {
-  return "APP-" + Date.now().toString(36).toUpperCase();
 }
 
 // रुपये का फॉर्मेट
@@ -51,7 +28,7 @@ function formatMoney(value) {
   return "₹" + amount.toLocaleString("en-IN");
 }
 
-// सुरक्षित टेक्स्ट रो बनाएँ
+// टेबल रो बनाने के लिए
 function addRow(container, label, value) {
   const row = document.createElement("p");
   const strong = document.createElement("strong");
@@ -69,28 +46,14 @@ function addRow(container, label, value) {
   container.appendChild(row);
 }
 
-// फॉर्म रीसेट करें
+// फॉर्म रीसेट
 function resetForm() {
   const form = document.getElementById("customerForm");
   if (form) form.reset();
-
-  const editingId = document.getElementById("editingId");
-  if (editingId) editingId.value = "";
-
-  const button = document.querySelector(
-    '#customerForm button[type="submit"]'
-  );
-
-  if (button) button.textContent = "Submit Customer";
-
-  const cancelButton =
-    document.getElementById("cancelEditButton");
-
-  if (cancelButton) cancelButton.style.display = "none";
 }
 
-// फॉर्म सबमिट
-function handleCustomerSubmit(event) {
+// 1. एडमिन पैनल से डेटा सर्वर पर सेव करने के लिए
+async function handleCustomerSubmit(event) {
   event.preventDefault();
 
   const name = getValue("customerName");
@@ -98,8 +61,7 @@ function handleCustomerSubmit(event) {
   const loanType = getValue("loanType");
   const loanAmount = getValue("loanAmount");
   const percentageText = getValue("percentage");
-  const percentage =
-    percentageText === "" ? 0 : Number(percentageText);
+  const percentage = percentageText === "" ? 0 : Number(percentageText);
 
   if (!name) {
     setMessage("कृपया ग्राहक का नाम भरें।", "error");
@@ -116,29 +78,9 @@ function handleCustomerSubmit(event) {
     return;
   }
 
-  if (
-    loanAmount === "" ||
-    !Number.isFinite(Number(loanAmount)) ||
-    Number(loanAmount) < 0
-  ) {
-    setMessage("कृपया सही Loan Amount भरें।", "error");
-    return;
-  }
-
-  if (
-    !Number.isFinite(percentage) ||
-    percentage < 0 ||
-    percentage > 100
-  ) {
-    setMessage("Progress 0 से 100 के बीच भरें।", "error");
-    return;
-  }
-
-  const editingField = document.getElementById("editingId");
-  const editingId = editingField ? editingField.value : "";
-
-  const customer = {
+  const customerData = {
     name: name,
+    fullName: name,
     mobile: mobile,
     loanType: loanType,
     loanAmount: loanAmount,
@@ -152,201 +94,82 @@ function handleCustomerSubmit(event) {
     accountHolderName: getValue("accountHolderName"),
     accountNumber: getValue("accountNumber"),
     ifscCode: getValue("ifscCode"),
-    upiNumber: getValue("upiNumber"),
-    status: "Pending",
-    updatedAt: new Date().toISOString()
+    upiId: getValue("upiNumber"),
+    status: "Pending"
   };
 
   try {
-    const customers = getCustomers();
+    setMessage("डेटा सेव हो रहा है...");
 
-    if (editingId) {
-      const index = customers.findIndex(
-        item => item.applicationId === editingId
-      );
+    const response = await fetch(${API_BASE}/submit-application, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(customerData)
+    });
 
-      if (index === -1) {
-        setMessage("अपडेट करने वाला रिकॉर्ड नहीं मिला।", "error");
-        return;
-      }
+    const result = await response.json();
 
-      customer.applicationId = editingId;
-      customers[index] = {
-        ...customers[index],
-        ...customer
-      };
-    } else {
-      const duplicate = customers.find(
-        item => item.mobile === mobile
-      );
-
-      if (duplicate) {
-        setMessage(
-          "यह मोबाइल नंबर पहले से सेव है। पुराने रिकॉर्ड को Edit करें।",
-          "error"
-        );
-        return;
-      }
-
-      customer.applicationId = makeId();
-      customers.unshift(customer);
-    }
-
-    // सेव करने के बाद डेटा दोबारा पढ़कर पुष्टि करें
-    saveCustomers(customers);
-
-    const savedCustomers = getCustomers();
-    const savedRecord = savedCustomers.find(
-      item => item.applicationId === customer.applicationId
-    );
-
-    if (!savedRecord) {
-      throw new Error("Record verification failed");
+    if (!response.ok || result.success === false) {
+      throw new Error(result.message || "डेटा सेव करने में विफल।");
     }
 
     loadCustomers();
     resetForm();
-
-    setMessage(
-      "रिकॉर्ड सफलतापूर्वक सेव हो गया। Application ID: " +
-      customer.applicationId
-    );
+    setMessage("रिकॉर्ड सफलतापूर्वक सर्वर पर सेव हो गया!");
   } catch (error) {
     console.error("Save error:", error);
-    setMessage(
-      "रिकॉर्ड सेव नहीं हुआ। कृपया दोबारा कोशिश करें।",
-      "error"
-    );
+    setMessage("रिकॉर्ड सेव नहीं हुआ। कृपया सर्वर कनेक्शन जाँचें।", "error");
   }
 }
 
-// Admin में सभी रिकॉर्ड दिखाएँ
-function loadCustomers() {
+// 2. एडमिन पैनल में लिस्ट लोड करने के लिए
+async function loadCustomers() {
   const list = document.getElementById("customerList");
   if (!list) return;
 
   list.replaceChildren();
 
-  const customers = getCustomers();
-
-  if (customers.length === 0) {
-    const empty = document.createElement("p");
-    empty.textContent = "अभी कोई रिकॉर्ड उपलब्ध नहीं है।";
-    list.appendChild(empty);
-    return;
-  }
-
-  customers.forEach(customer => {
-    const card = document.createElement("div");
-    card.className = "customer-card";
-
-    addRow(card, "नाम", customer.name);
-    addRow(card, "मोबाइल", customer.mobile);
-    addRow(card, "Application ID", customer.applicationId);
-    addRow(card, "Loan Type", customer.loanType);
-    addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
-    addRow(card, "स्टेटस", customer.status);
-    addRow(card, "Application Progress", ${customer.percentage || 0}%);
-
-    const editButton = document.createElement("button");
-    editButton.type = "button";
-    editButton.textContent = "Edit";
-    editButton.addEventListener("click", () => {
-      editCustomer(customer.applicationId);
-    });
-
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.textContent = "Delete";
-    deleteButton.addEventListener("click", () => {
-      deleteCustomer(customer.applicationId);
-    });
-
-    card.appendChild(editButton);
-    card.appendChild(deleteButton);
-    list.appendChild(card);
-  });
-}
-
-// रिकॉर्ड एडिट करें
-function editCustomer(applicationId) {
-  const customer = getCustomers().find(
-    item => item.applicationId === applicationId
-  );
-
-  if (!customer) {
-    setMessage("रिकॉर्ड नहीं मिला।", "error");
-    return;
-  }
-
-  const fieldMap = {
-    customerName: "name",
-    mobileNumber: "mobile",
-    loanType: "loanType",
-    loanAmount: "loanAmount",
-    aadhaarLast4: "aadhaarLast4",
-    panLast4: "panLast4",
-    returnYear: "returnYear",
-    charge: "charge",
-    chargeAmount: "chargeAmount",
-    percentage: "percentage",
-    bankName: "bankName",
-    accountHolderName: "accountHolderName",
-    accountNumber: "accountNumber",
-    ifscCode: "ifscCode",
-    upiNumber: "upiNumber"
-  };
-
-  Object.entries(fieldMap).forEach(([id, key]) => {
-    const field = document.getElementById(id);
-    if (field) field.value = customer[key] ?? "";
-  });
-
-  let editingField = document.getElementById("editingId");
-
-  if (!editingField) {
-    editingField = document.createElement("input");
-    editingField.type = "hidden";
-    editingField.id = "editingId";
-    document.getElementById("customerForm").appendChild(editingField);
-  }
-
-  editingField.value = customer.applicationId;
-
-  const button = document.querySelector(
-    '#customerForm button[type="submit"]'
-  );
-
-  if (button) button.textContent = "Update Customer";
-
-  setMessage("जानकारी बदलकर Update Customer दबाएँ।");
-
-  document.getElementById("customerForm").scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-}
-
-// रिकॉर्ड हटाएँ
-function deleteCustomer(applicationId) {
-  if (!confirm("क्या आप यह रिकॉर्ड हटाना चाहते हैं?")) return;
-
   try {
-    const customers = getCustomers().filter(
-      item => item.applicationId !== applicationId
-    );
+    const response = await fetch(${API_BASE}/applications);
+    if (!response.ok) return;
 
-    saveCustomers(customers);
-    loadCustomers();
-    setMessage("रिकॉर्ड हटा दिया गया।");
+    const customers = await response.json();
+
+    if (!Array.isArray(customers) || customers.length === 0) {
+      const empty = document.createElement("p");
+      empty.textContent = "अभी कोई रिकॉर्ड उपलब्ध नहीं है।";
+      list.appendChild(empty);
+      return;
+    }
+
+    customers.forEach(customer => {
+      const card = document.createElement("div");
+      card.className = "customer-card";
+      card.style.border = "1px solid #ddd";
+      card.style.padding = "15px";
+      card.style.margin = "10px 0";
+      card.style.borderRadius = "8px";
+
+      addRow(card, "नाम", customer.name || customer.fullName);
+      addRow(card, "मोबाइल", customer.mobile);
+      addRow(card, "Loan Type", customer.loanType);
+      addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
+      addRow(card, "स्टेटस", customer.status || "Pending");
+      addRow(card, "Application Progress", ${customer.percentage || 0}%);
+      addRow(card, "अकाउंट नंबर", customer.accountNumber);
+      addRow(card, "UPI ID", customer.upiId);
+
+      list.appendChild(card);
+    });
   } catch (error) {
-    console.error("Delete error:", error);
-    setMessage("रिकॉर्ड हटाया नहीं जा सका।", "error");
+    console.error("Load customers error:", error);
   }
 }
 
-// मोबाइल नंबर से स्टेटस देखें
-function checkStatus() {
+// 3. मोबाइल नंबर से चेक स्टेटस करने के लिए (सर्वर से डेटा लाने के लिए)
+async function checkStatus() {
   const mobileInput = document.getElementById("mobileNumber");
   const result = document.getElementById("statusResult");
 
@@ -360,45 +183,70 @@ function checkStatus() {
     return;
   }
 
-  const customer = getCustomers().find(
-    item => item.mobile === mobile
-  );
+  result.textContent = "जानकारी लोड हो रही है...";
 
-  if (!customer) {
-    result.textContent =
-      "इस मोबाइल नंबर से कोई आवेदन नहीं मिला।";
-    return;
+  try {
+    // एक साथ एप्लीकेशन और बैंक डिटेल्स फेच करें
+    const [appRes, accRes] = await Promise.all([
+      fetch(${API_BASE}/check-application?mobile=${encodeURIComponent(mobile)}),
+      fetch(${API_BASE}/account-details).catch(() => null)
+    ]);
+
+    const data = await appRes.json();
+
+    if (!appRes.ok || data.success === false || !data.application) {
+      result.textContent = "इस मोबाइल नंबर से कोई आवेदन नहीं मिला।";
+      return;
+    }
+
+    let customer = data.application;
+
+    // अगर ग्लोबल अकाउंट डिटेल्स हैं तो उन्हें भी जोड़ें
+    if (accRes && accRes.ok) {
+      const accData = await accRes.json();
+      const details = accData.accountDetails || accData.data || accData;
+      if (details) {
+        customer = { ...details, ...customer };
+      }
+    }
+
+    result.replaceChildren();
+
+    const card = document.createElement("div");
+    card.className = "status-card";
+    card.style.border = "1px solid #ddd";
+    card.style.padding = "20px";
+    card.style.borderRadius = "10px";
+    card.style.marginTop = "15px";
+    card.style.background = "#fff";
+
+    addRow(card, "आवेदक का नाम", customer.name || customer.fullName);
+    addRow(card, "Application ID", customer.applicationId || "—");
+    addRow(card, "Loan Type", customer.loanType || "—");
+    addRow(card, "आवेदन का स्टेटस", customer.status || "Pending");
+    addRow(card, "Application Progress", ${customer.percentage || 0}%);
+    addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
+    addRow(card, "बैंक का नाम", customer.bankName);
+    addRow(card, "खाताधारक का नाम", customer.accountHolderName);
+    addRow(card, "अकाउंट नंबर", customer.accountNumber);
+    addRow(card, "IFSC कोड", customer.ifscCode);
+    addRow(card, "UPI ID", customer.upiId || customer.upiNumber);
+
+    result.appendChild(card);
+  } catch (error) {
+    console.error("Check status error:", error);
+    result.textContent = "सर्वर से संपर्क नहीं हो सका। कृपया बाद में कोशिश करें।";
   }
-
-  const card = document.createElement("div");
-  card.className = "status-card";
-
-  addRow(card, "आवेदक का नाम", customer.name);
-  addRow(card, "Application ID", customer.applicationId);
-  addRow(card, "Loan Type", customer.loanType);
-  addRow(card, "आवेदन का स्टेटस", customer.status);
-  addRow(
-    card,
-    "Application Progress",
-    ${customer.percentage || 0}%
-  );
-  addRow(card, "लोन राशि", formatMoney(customer.loanAmount));
-
-  result.appendChild(card);
 }
 
 window.checkStatus = checkStatus;
-window.editCustomer = editCustomer;
-window.deleteCustomer = deleteCustomer;
 
-// स्क्रिप्ट शुरू करें
+// स्क्रिप्ट इनिशियलाइज़ेशन
 function initializeScript() {
   const form = document.getElementById("customerForm");
-
   if (form) {
     form.addEventListener("submit", handleCustomerSubmit);
   }
-
   loadCustomers();
 }
 
