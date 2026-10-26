@@ -1,3 +1,4 @@
+"use strict";
 
 const API_BASE =
   "https://reliance-financesss-service12.onrender.com";
@@ -7,8 +8,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const message = document.getElementById("adminMessage");
   const customerList = document.getElementById("customerList");
 
+  if (!form) {
+    console.error("customerForm नहीं मिला।");
+    return;
+  }
+
   function showMessage(text, success = false) {
-    if (!message) return;
+    if (!message) {
+      alert(text);
+      return;
+    }
 
     message.textContent = text;
     message.style.color = success ? "green" : "red";
@@ -19,9 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const text = await response.text();
 
     if (!text.trim()) {
-      throw new Error(
-        API से खाली response मिला (HTTP ${response.status})
-      );
+      throw new Error(खाली API response (HTTP ${response.status}));
     }
 
     let data;
@@ -29,60 +36,41 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error(
-        API ने JSON response नहीं दिया (HTTP ${response.status})
-      );
+      throw new Error(API ने JSON नहीं भेजा (HTTP ${response.status}));
     }
 
-    if (!response.ok) {
+    if (!response.ok || data.success === false || data.error) {
       throw new Error(
-        data.message ||
-        data.error ||
-        Server error: ${response.status}
-      );
-    }
-
-    if (data.success === false || data.error) {
-      throw new Error(
-        data.message || data.error || "डेटा सेव नहीं हुआ।"
+        data.message || data.error || Server error ${response.status}
       );
     }
 
     return data;
   }
 
-  if (!form) {
-    console.error("customerForm नहीं मिला।");
-    return;
-  }
-
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const button = form.querySelector(
-      'button[type="submit"]'
-    );
+    const button = form.querySelector('button[type="submit"]');
+    const originalText = button?.textContent || "Submit Customer";
 
-    const originalButtonText =
-      button?.textContent || "Submit Customer";
-
-    const getValue = (id) =>
+    const value = (id) =>
       document.getElementById(id)?.value?.trim() || "";
 
-    const name = getValue("customerName");
-    const mobile = getValue("mobileNumber");
-    const loanType = getValue("loanType");
-    const loanAmount = Number(getValue("loanAmount"));
-    const returnYear = Number(getValue("returnYear"));
-    const percentage = Number(getValue("percentage"));
+    const name = value("customerName");
+    const mobile = value("mobileNumber");
+    const loanType = value("loanType");
+    const loanAmount = Number(value("loanAmount"));
+    const returnYear = Number(value("returnYear"));
+    const percentage = Number(value("percentage"));
 
     if (!name || !mobile || !loanType) {
-      showMessage("कृपया नाम, मोबाइल और Loan Type भरें।");
+      showMessage("नाम, मोबाइल और Loan Type भरें।");
       return;
     }
 
-    if (!/^[0-9]{10}$/.test(mobile)) {
-      showMessage("मोबाइल नंबर 10 अंकों का होना चाहिए।");
+    if (!/^\d{10}$/.test(mobile)) {
+      showMessage("डेमो मोबाइल नंबर 10 अंकों का होना चाहिए।");
       return;
     }
 
@@ -101,13 +89,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // Backend के अपेक्षित field names
     const payload = {
-      name,
-      mobile,
-      loan_type: loanType,
-      loan_amount: loanAmount,
-      return_year: returnYear,
-      percentage
+      name: name,
+      mobile: mobile,
+      loanType: loanType,
+      loanAmount: loanAmount,
+      returnYear: returnYear,
+      percentage: percentage
     };
 
     try {
@@ -116,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
         button.textContent = "Saving...";
       }
 
-      showMessage("डेटा सेव किया जा रहा है...", true);
+      showMessage("डेटा भेजा जा रहा है...", true);
 
       const response = await fetch(
         ${API_BASE}/submit-application,
@@ -131,22 +120,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = await readApiResponse(response);
 
-      // Backend से रिकॉर्ड की पुष्टि आवश्यक है।
-      const application = result.application;
+      // केवल सफल HTTP/API जवाब के बाद फॉर्म खाली करें।
+      // Backend response में ID का नाम अलग हो सकता है।
+      const record =
+        result.application || result.data || result;
 
-      if (
-        !application ||
-        application.id === undefined ||
-        application.id === null
-      ) {
-        throw new Error(
-          "API ने सेव किए गए रिकॉर्ड की ID नहीं भेजी। " +
-          "फॉर्म सुरक्षित रखा गया है। Backend response जाँचें।"
+      const recordId =
+        record.id ?? record.application_id ?? record.applicationId;
+
+      if (record.success === false) {
+        throw new Error(result.message || "डेटा सेव नहीं हुआ।");
+      }
+
+      if (recordId == null) {
+        console.warn("API response में रिकॉर्ड ID नहीं मिली:", result);
+        showMessage(
+          "API ने जवाब दिया, लेकिन सेव होने की पुष्टि नहीं मिली। " +
+          "फॉर्म खाली नहीं किया गया। Render Logs जाँचें।"
         );
+        return;
       }
 
       showMessage(
-        डेटा सेव हो गया। Application ID: ${application.id},
+        डेटा सेव हो गया। Application ID: ${recordId},
         true
       );
 
@@ -154,23 +150,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (customerList) {
         const item = document.createElement("div");
-        item.textContent =
-          ${name} — ${mobile} — ID: ${application.id};
+        item.textContent = ${name} — ${mobile} — ID: ${recordId};
         customerList.prepend(item);
       }
     } catch (error) {
-      console.error("Application submit error:", error);
-
-      showMessage(
-        डेटा सेव नहीं हुआ: ${error.message}
-      );
+      console.error("Submit error:", error);
+      showMessage(डेटा सेव नहीं हुआ: ${error.message});
     } finally {
       if (button) {
         button.disabled = false;
-        button.textContent = originalButtonText;
+        button.textContent = originalText;
       }
     }
   });
 
-  console.log("Admin script loaded successfully.");
+  console.log("Admin script loaded.");
 });
