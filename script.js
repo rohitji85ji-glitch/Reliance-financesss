@@ -8,19 +8,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const customerList = document.getElementById("customerList");
 
   function showMessage(text, success = false) {
-    if (!message) {
+    if (message) {
+      message.textContent = text;
+      message.style.color = success ? "green" : "red";
+      message.style.display = "block";
+    } else {
       alert(text);
-      return;
     }
-
-    message.textContent = text;
-    message.style.color = success ? "green" : "red";
-    message.style.display = "block";
   }
 
   if (!form) {
     console.error("customerForm नहीं मिला।");
-    showMessage("Form नहीं मिला। admin.html में customerForm ID जाँचें।");
     return;
   }
 
@@ -37,12 +35,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const mobile = value("mobileNumber");
     const loanType = value("loanType");
     const loanAmountText = value("loanAmount");
-    const returnYearText = value("returnYear");
+    const returnPeriodText = value("returnYear");
     const percentageText = value("percentage");
 
     const loanAmount = Number(loanAmountText);
-    const returnYear = Number(returnYearText);
-    const percentage = Number(percentageText || 0);
+    const percentage = percentageText === ""
+      ? 0
+      : Number(percentageText);
+
+    // Backend फिलहाल Return Period को वर्षों में नंबर मानता है.
+    const yearMatch = returnPeriodText.match(/^\s*(\d+(?:\.\d+)?)/);
+    const returnYear = yearMatch ? Number(yearMatch[1]) : NaN;
 
     if (!name || !mobile || !loanType) {
       showMessage("नाम, मोबाइल और Loan Type भरें।");
@@ -59,13 +62,13 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (!returnYearText || !Number.isFinite(returnYear) || returnYear <= 0) {
-      showMessage("Return Year में वर्षों की संख्या भरें, जैसे 2।");
+    if (!returnPeriodText || !Number.isFinite(returnYear) || returnYear <= 0) {
+      showMessage("Return Period में वर्षों की संख्या लिखें, जैसे 2 Years।");
       return;
     }
 
     if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
-      showMessage("Percentage 0 से 100 के बीच भरें।");
+      showMessage("Progress 0 से 100 के बीच भरें।");
       return;
     }
 
@@ -86,16 +89,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       showMessage("डेटा सेव किया जा रहा है...", true);
 
-      const response = await fetch(
-        ${API_BASE}/submit-application,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        }
-      );
+      const response = await fetch(${API_BASE}/submit-application, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
 
       const text = await response.text();
       let result;
@@ -103,27 +103,21 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         result = JSON.parse(text);
       } catch {
-        throw new Error(
-          Backend ने सही JSON नहीं भेजा (HTTP ${response.status})
-        );
+        throw new Error(Backend का जवाब पढ़ा नहीं जा सका (HTTP ${response.status}));
       }
 
       if (!response.ok || result.success !== true) {
-        throw new Error(
-          result.message || Request failed (HTTP ${response.status})
-        );
+        throw new Error(result.message || HTTP ${response.status});
       }
 
       const record = result.application || result.data || {};
       const recordId = record.id ?? record.application_id ?? record.applicationId;
 
       if (recordId == null) {
-        throw new Error(
-          "Backend ने सेव होने की पुष्टि या Application ID नहीं दी।"
-        );
+        throw new Error("रिकॉर्ड ID नहीं मिली; सेव होने की पुष्टि नहीं हुई।");
       }
 
-      showMessage(डेटा सफलतापूर्वक सेव हुआ। Application ID: ${recordId}, true);
+      showMessage(डेटा सेव हो गया। Application ID: ${recordId}, true);
 
       form.reset();
 
@@ -145,4 +139,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
   console.log("Admin script loaded.");
 });
-
