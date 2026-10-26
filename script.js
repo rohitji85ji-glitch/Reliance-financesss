@@ -24,7 +24,11 @@ function setMessage(message, type = "success") {
 
 function formatMoney(value) {
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return "₹0";
+
+  if (!Number.isFinite(amount)) {
+    return "₹0";
+  }
+
   return "₹" + amount.toLocaleString("en-IN");
 }
 
@@ -62,17 +66,21 @@ async function apiRequest(path, options = {}) {
   try {
     response = await fetch(API_BASE + path, options);
   } catch (error) {
+    console.error("API connection error:", error);
+
     throw new Error(
       "API से कनेक्शन नहीं हुआ। इंटरनेट और API URL चेक करें।"
     );
   }
 
-  return readApiResponse(response);
+  return await readApiResponse(response);
 }
 
-// डेमो आवेदन सेव करें
+// Admin Panel: डेमो आवेदन सेव करें
 async function handleCustomerSubmit(event) {
   event.preventDefault();
+
+  const form = event.currentTarget;
 
   const name =
     getValue("customerName") ||
@@ -125,13 +133,14 @@ async function handleCustomerSubmit(event) {
     return;
   }
 
-  const form = document.getElementById("customerForm");
-  const submitButton = form?.querySelector(
+  const submitButton = form.querySelector(
     'button[type="submit"], input[type="submit"]'
   );
 
   try {
-    if (submitButton) submitButton.disabled = true;
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
 
     setMessage("डेमो आवेदन सेव हो रहा है...");
 
@@ -150,17 +159,20 @@ async function handleCustomerSubmit(event) {
       })
     });
 
-    if (!result.application || result.application.id == null) {
+    if (
+      !result.application ||
+      result.application.id == null
+    ) {
       throw new Error(
-        "सर्वर से आवेदन सेव होने की पुष्टि नहीं मिली।"
+        "सर्वर से सेव होने की पुष्टि नहीं मिली।"
       );
     }
 
-    // केवल सफल सेव होने पर फॉर्म खाली होगा
-    if (form) form.reset();
+    // केवल सफल सेव होने की पुष्टि के बाद फॉर्म साफ होगा।
+    form.reset();
 
     setMessage(
-      "डेमो आवेदन सेव हो गया। Application ID: " +
+      "डेमो आवेदन सफलतापूर्वक सेव हुआ। Application ID: " +
       result.application.id
     );
   } catch (error) {
@@ -171,11 +183,13 @@ async function handleCustomerSubmit(event) {
       "error"
     );
   } finally {
-    if (submitButton) submitButton.disabled = false;
+    if (submitButton) {
+      submitButton.disabled = false;
+    }
   }
 }
 
-// मोबाइल नंबर से आवेदन का डेमो स्टेटस चेक करें
+// Status Page: मोबाइल नंबर से आवेदन खोजें
 async function checkStatus() {
   const mobileInput = document.getElementById("mobileNumber");
   const result = document.getElementById("statusResult");
@@ -188,6 +202,7 @@ async function checkStatus() {
   }
 
   const mobile = mobileInput.value.trim();
+
   result.replaceChildren();
 
   if (!/^\d{10}$/.test(mobile)) {
@@ -214,9 +229,13 @@ async function checkStatus() {
     const card = document.createElement("div");
 
     card.className = "status-card";
+
     card.style.cssText =
-      "border:1px solid #ddd;padding:20px;" +
-      "border-radius:10px;margin-top:15px;background:#fff;";
+      "border:1px solid #ddd;" +
+      "padding:20px;" +
+      "border-radius:10px;" +
+      "margin-top:15px;" +
+      "background:#fff;";
 
     function addRow(label, value) {
       const row = document.createElement("p");
@@ -225,14 +244,14 @@ async function checkStatus() {
       strong.textContent = label + ": ";
       row.appendChild(strong);
 
-      row.appendChild(
-        document.createTextNode(
-          value === undefined || value === null || value === ""
-            ? "—"
-            : String(value)
-        )
-      );
+      const safeValue =
+        value === undefined ||
+        value === null ||
+        value === ""
+          ? "—"
+          : String(value);
 
+      row.appendChild(document.createTextNode(safeValue));
       card.appendChild(row);
     }
 
@@ -240,11 +259,17 @@ async function checkStatus() {
     addRow("Application ID", application.id);
     addRow("Loan Type", application.loan_type);
     addRow("आवेदन का स्टेटस", application.status);
+
     addRow(
       "Application Progress",
       (application.percentage ?? 0) + "%"
     );
-    addRow("लोन राशि", formatMoney(application.loan_amount));
+
+    addRow(
+      "लोन राशि",
+      formatMoney(application.loan_amount)
+    );
+
     addRow("वापसी अवधि", application.return_year);
 
     result.replaceChildren(card);
@@ -258,18 +283,24 @@ async function checkStatus() {
 
 window.checkStatus = checkStatus;
 
-// Submit listener एक बार ही लगाएँ
+// Form submit listener
 function initializeScript() {
   const form = document.getElementById("customerForm");
 
-  if (form && form.dataset.submitHandlerAttached !== "true") {
+  if (
+    form &&
+    form.dataset.submitHandlerAttached !== "true"
+  ) {
     form.addEventListener("submit", handleCustomerSubmit);
     form.dataset.submitHandlerAttached = "true";
   }
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeScript);
+  document.addEventListener(
+    "DOMContentLoaded",
+    initializeScript
+  );
 } else {
   initializeScript();
 }
