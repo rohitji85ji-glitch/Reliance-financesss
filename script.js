@@ -1,6 +1,6 @@
 "use strict";
 
-const API_BASE = "https://reliance-financesss-12.onrender.com";
+const API_BASE = "https://reliance-financesss-service12.onrender.com";
 
 function getValue(id) {
   const element = document.getElementById(id);
