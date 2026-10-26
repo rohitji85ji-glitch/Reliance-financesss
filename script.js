@@ -1,12 +1,58 @@
+
 const API_BASE =
   "https://reliance-financesss-service12.onrender.com";
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("customerForm");
   const message = document.getElementById("adminMessage");
+  const customerList = document.getElementById("customerList");
 
-  if (!form || !message) {
-    console.error("Form or message element not found.");
+  function showMessage(text, success = false) {
+    if (!message) return;
+
+    message.textContent = text;
+    message.style.color = success ? "green" : "red";
+    message.style.display = "block";
+  }
+
+  async function readApiResponse(response) {
+    const text = await response.text();
+
+    if (!text.trim()) {
+      throw new Error(
+        API से खाली response मिला (HTTP ${response.status})
+      );
+    }
+
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(
+        API ने JSON response नहीं दिया (HTTP ${response.status})
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+        data.error ||
+        Server error: ${response.status}
+      );
+    }
+
+    if (data.success === false || data.error) {
+      throw new Error(
+        data.message || data.error || "डेटा सेव नहीं हुआ।"
+      );
+    }
+
+    return data;
+  }
+
+  if (!form) {
+    console.error("customerForm नहीं मिला।");
     return;
   }
 
@@ -17,38 +63,52 @@ document.addEventListener("DOMContentLoaded", () => {
       'button[type="submit"]'
     );
 
-    const originalText = button?.textContent;
+    const originalButtonText =
+      button?.textContent || "Submit Customer";
 
-    const showMessage = (text, success = false) => {
-      message.textContent = text;
-      message.style.color = success ? "green" : "red";
-    };
+    const getValue = (id) =>
+      document.getElementById(id)?.value?.trim() || "";
 
-    const data = {
-      name: document.getElementById("customerName").value.trim(),
-      mobile: document.getElementById("mobileNumber").value.trim(),
-      loan_type: document.getElementById("loanType").value,
-      loan_amount: Number(
-        document.getElementById("loanAmount").value
-      ),
-      return_year: Number(
-        document.getElementById("returnYear").value
-      ),
-      percentage: Number(
-        document.getElementById("percentage").value
-      )
-    };
+    const name = getValue("customerName");
+    const mobile = getValue("mobileNumber");
+    const loanType = getValue("loanType");
+    const loanAmount = Number(getValue("loanAmount"));
+    const returnYear = Number(getValue("returnYear"));
+    const percentage = Number(getValue("percentage"));
 
-    if (
-      !data.name ||
-      !data.mobile ||
-      !data.loan_type ||
-      !Number.isFinite(data.loan_amount) ||
-      data.loan_amount <= 0
-    ) {
-      showMessage("कृपया सभी जरूरी जानकारी सही भरें।");
+    if (!name || !mobile || !loanType) {
+      showMessage("कृपया नाम, मोबाइल और Loan Type भरें।");
       return;
     }
+
+    if (!/^[0-9]{10}$/.test(mobile)) {
+      showMessage("मोबाइल नंबर 10 अंकों का होना चाहिए।");
+      return;
+    }
+
+    if (!Number.isFinite(loanAmount) || loanAmount <= 0) {
+      showMessage("Loan Amount सही भरें।");
+      return;
+    }
+
+    if (!Number.isFinite(returnYear) || returnYear <= 0) {
+      showMessage("Return Year सही भरें।");
+      return;
+    }
+
+    if (!Number.isFinite(percentage) || percentage < 0) {
+      showMessage("Percentage सही भरें।");
+      return;
+    }
+
+    const payload = {
+      name,
+      mobile,
+      loan_type: loanType,
+      loan_amount: loanAmount,
+      return_year: returnYear,
+      percentage
+    };
 
     try {
       if (button) {
@@ -65,39 +125,52 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify(payload)
         }
       );
 
-      const result = await response.json().catch(() => null);
+      const result = await readApiResponse(response);
 
-      if (!response.ok) {
+      // Backend से रिकॉर्ड की पुष्टि आवश्यक है।
+      const application = result.application;
+
+      if (
+        !application ||
+        application.id === undefined ||
+        application.id === null
+      ) {
         throw new Error(
-          result?.error ||
-          result?.message ||
-          Server error: ${response.status}
+          "API ने सेव किए गए रिकॉर्ड की ID नहीं भेजी। " +
+          "फॉर्म सुरक्षित रखा गया है। Backend response जाँचें।"
         );
       }
 
-      if (!result || result.error || !result.application?.id) {
-        throw new Error(
-          result?.error ||
-          "सेव होने की पुष्टि नहीं मिली। फॉर्म खाली नहीं किया गया।"
-        );
-      }
+      showMessage(
+        डेटा सेव हो गया। Application ID: ${application.id},
+        true
+      );
 
       form.reset();
-      showMessage("डेटा सफलतापूर्वक सेव हो गया।", true);
+
+      if (customerList) {
+        const item = document.createElement("div");
+        item.textContent =
+          ${name} — ${mobile} — ID: ${application.id};
+        customerList.prepend(item);
+      }
     } catch (error) {
-      console.error("Submit error:", error);
+      console.error("Application submit error:", error);
+
       showMessage(
         डेटा सेव नहीं हुआ: ${error.message}
       );
     } finally {
       if (button) {
         button.disabled = false;
-        button.textContent = originalText || "Submit Customer";
+        button.textContent = originalButtonText;
       }
     }
   });
+
+  console.log("Admin script loaded successfully.");
 });
