@@ -28,11 +28,6 @@ function formatMoney(value) {
   return "₹" + amount.toLocaleString("en-IN");
 }
 
-function resetForm() {
-  const form = document.getElementById("customerForm");
-  if (form) form.reset();
-}
-
 async function readApiResponse(response) {
   const text = await response.text();
 
@@ -75,7 +70,7 @@ async function apiRequest(path, options = {}) {
   return readApiResponse(response);
 }
 
-// डेमो आवेदन सबमिट करें
+// डेमो आवेदन सेव करें
 async function handleCustomerSubmit(event) {
   event.preventDefault();
 
@@ -89,13 +84,13 @@ async function handleCustomerSubmit(event) {
     getValue("mobile");
 
   const loanType = getValue("loanType");
-  const loanAmount = getValue("loanAmount");
+  const loanAmountText = getValue("loanAmount");
   const percentageText = getValue("percentage");
+  const returnYear = getValue("returnYear");
 
+  const loanAmount = Number(loanAmountText);
   const percentage =
     percentageText === "" ? 0 : Number(percentageText);
-
-  const returnYear = getValue("returnYear");
 
   if (!name) {
     setMessage("कृपया नाम भरें।", "error");
@@ -113,9 +108,9 @@ async function handleCustomerSubmit(event) {
   }
 
   if (
-    loanAmount === "" ||
-    !Number.isFinite(Number(loanAmount)) ||
-    Number(loanAmount) < 0
+    loanAmountText === "" ||
+    !Number.isFinite(loanAmount) ||
+    loanAmount < 0
   ) {
     setMessage("सही Loan Amount भरें।", "error");
     return;
@@ -130,8 +125,9 @@ async function handleCustomerSubmit(event) {
     return;
   }
 
-  const submitButton = document.querySelector(
-    '#customerForm button[type="submit"], #customerForm input[type="submit"]'
+  const form = document.getElementById("customerForm");
+  const submitButton = form?.querySelector(
+    'button[type="submit"], input[type="submit"]'
   );
 
   try {
@@ -148,20 +144,23 @@ async function handleCustomerSubmit(event) {
         name,
         mobile,
         loanType,
-        loanAmount: Number(loanAmount),
+        loanAmount,
         returnYear,
         percentage
       })
     });
 
-    if (!result.application) {
-      throw new Error("सर्वर से आवेदन की पुष्टि नहीं मिली।");
+    if (!result.application || result.application.id == null) {
+      throw new Error(
+        "सर्वर से आवेदन सेव होने की पुष्टि नहीं मिली।"
+      );
     }
 
-    resetForm();
+    // केवल सफल सेव होने पर फॉर्म खाली होगा
+    if (form) form.reset();
 
     setMessage(
-      "डेमो आवेदन सेव हुआ। Application ID: " +
+      "डेमो आवेदन सेव हो गया। Application ID: " +
       result.application.id
     );
   } catch (error) {
@@ -176,14 +175,14 @@ async function handleCustomerSubmit(event) {
   }
 }
 
-// मोबाइल नंबर से डेमो स्टेटस चेक करें
+// मोबाइल नंबर से आवेदन का डेमो स्टेटस चेक करें
 async function checkStatus() {
   const mobileInput = document.getElementById("mobileNumber");
   const result = document.getElementById("statusResult");
 
   if (!mobileInput || !result) {
     console.error(
-      "Status form में mobileNumber या statusResult ID नहीं मिली।"
+      "mobileNumber या statusResult ID नहीं मिली।"
     );
     return;
   }
@@ -212,10 +211,9 @@ async function checkStatus() {
     }
 
     const application = data.application;
-
     const card = document.createElement("div");
-    card.className = "status-card";
 
+    card.className = "status-card";
     card.style.cssText =
       "border:1px solid #ddd;padding:20px;" +
       "border-radius:10px;margin-top:15px;background:#fff;";
@@ -260,11 +258,11 @@ async function checkStatus() {
 
 window.checkStatus = checkStatus;
 
-// फॉर्म को केवल एक बार जोड़ें
+// Submit listener एक बार ही लगाएँ
 function initializeScript() {
   const form = document.getElementById("customerForm");
 
-  if (form && !form.dataset.submitHandlerAttached) {
+  if (form && form.dataset.submitHandlerAttached !== "true") {
     form.addEventListener("submit", handleCustomerSubmit);
     form.dataset.submitHandlerAttached = "true";
   }
