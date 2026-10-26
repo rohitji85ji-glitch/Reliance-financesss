@@ -33,7 +33,6 @@ function resetForm() {
   if (form) form.reset();
 }
 
-// खाली response और invalid JSON को सुरक्षित तरीके से पढ़ें
 async function readApiResponse(response) {
   const text = await response.text();
 
@@ -62,7 +61,6 @@ async function readApiResponse(response) {
   return data;
 }
 
-// API request
 async function apiRequest(path, options = {}) {
   let response;
 
@@ -93,6 +91,7 @@ async function handleCustomerSubmit(event) {
   const loanType = getValue("loanType");
   const loanAmount = getValue("loanAmount");
   const percentageText = getValue("percentage");
+
   const percentage =
     percentageText === "" ? 0 : Number(percentageText);
 
@@ -156,18 +155,18 @@ async function handleCustomerSubmit(event) {
     });
 
     if (!result.application) {
-      throw new Error(
-        "सर्वर से आवेदन की पुष्टि नहीं मिली।"
-      );
+      throw new Error("सर्वर से आवेदन की पुष्टि नहीं मिली।");
     }
 
     resetForm();
+
     setMessage(
-      "डेमो आवेदन सफलतापूर्वक सेव हुआ। Application ID: " +
+      "डेमो आवेदन सेव हुआ। Application ID: " +
       result.application.id
     );
   } catch (error) {
     console.error("Submit error:", error);
+
     setMessage(
       error.message || "आवेदन सेव नहीं हो सका।",
       "error"
@@ -216,6 +215,7 @@ async function checkStatus() {
 
     const card = document.createElement("div");
     card.className = "status-card";
+
     card.style.cssText =
       "border:1px solid #ddd;padding:20px;" +
       "border-radius:10px;margin-top:15px;background:#fff;";
@@ -252,6 +252,7 @@ async function checkStatus() {
     result.replaceChildren(card);
   } catch (error) {
     console.error("Status error:", error);
+
     result.textContent =
       error.message || "स्टेटस लोड नहीं हुआ।";
   }
@@ -270,10 +271,7 @@ function initializeScript() {
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener(
-    "DOMContentLoaded",
-    initializeScript
-  );
+  document.addEventListener("DOMContentLoaded", initializeScript);
 } else {
   initializeScript();
 }
