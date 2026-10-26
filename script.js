@@ -2,39 +2,82 @@
 
 const API_BASE = "https://reliance-financesss-12.onrender.com";
 
-// वैल्यू पढ़ें
 function getValue(id) {
   const element = document.getElementById(id);
   return element ? element.value.trim() : "";
 }
 
-// मैसेज दिखाएँ
 function setMessage(message, type = "success") {
   const element =
     document.getElementById("adminMessage") ||
     document.getElementById("statusResult");
 
-  if (element) {
-    element.textContent = message;
-    element.style.color =
-      type === "error" ? "#dc2626" : "#15803d";
+  if (!element) {
+    console.log(message);
+    return;
   }
+
+  element.textContent = message;
+  element.style.color =
+    type === "error" ? "#dc2626" : "#15803d";
 }
 
-// रुपये का फॉर्मेट
 function formatMoney(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return "₹0";
   return "₹" + amount.toLocaleString("en-IN");
 }
 
-// फॉर्म रीसेट
 function resetForm() {
   const form = document.getElementById("customerForm");
   if (form) form.reset();
 }
 
-// डेमो आवेदन सबमिट
+// खाली response और invalid JSON को सुरक्षित तरीके से पढ़ें
+async function readApiResponse(response) {
+  const text = await response.text();
+
+  if (!text.trim()) {
+    throw new Error(
+      API से खाली response मिला (HTTP ${response.status})।
+    );
+  }
+
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(
+      API ने JSON के बजाय दूसरा response दिया (HTTP ${response.status})।
+    );
+  }
+
+  if (!response.ok || data.success === false) {
+    throw new Error(
+      data.message || API error (HTTP ${response.status})।
+    );
+  }
+
+  return data;
+}
+
+// API request
+async function apiRequest(path, options = {}) {
+  let response;
+
+  try {
+    response = await fetch(API_BASE + path, options);
+  } catch (error) {
+    throw new Error(
+      "API से कनेक्शन नहीं हुआ। इंटरनेट और API URL चेक करें।"
+    );
+  }
+
+  return readApiResponse(response);
+}
+
+// डेमो आवेदन सबमिट करें
 async function handleCustomerSubmit(event) {
   event.preventDefault();
 
@@ -44,13 +87,16 @@ async function handleCustomerSubmit(event) {
     getValue("fullName");
 
   const mobile =
-    getValue("mobileNumber") || getValue("mobile");
+    getValue("mobileNumber") ||
+    getValue("mobile");
 
   const loanType = getValue("loanType");
   const loanAmount = getValue("loanAmount");
   const percentageText = getValue("percentage");
   const percentage =
     percentageText === "" ? 0 : Number(percentageText);
+
+  const returnYear = getValue("returnYear");
 
   if (!name) {
     setMessage("कृपया नाम भरें।", "error");
@@ -72,7 +118,7 @@ async function handleCustomerSubmit(event) {
     !Number.isFinite(Number(loanAmount)) ||
     Number(loanAmount) < 0
   ) {
-    setMessage("कृपया सही Loan Amount भरें।", "error");
+    setMessage("सही Loan Amount भरें।", "error");
     return;
   }
 
@@ -85,54 +131,63 @@ async function handleCustomerSubmit(event) {
     return;
   }
 
-  const customerData = {
-    name,
-    mobile,
-    loanType,
-    loanAmount: Number(loanAmount),
-    returnYear: getValue("returnYear"),
-    percentage
-  };
+  const submitButton = document.querySelector(
+    '#customerForm button[type="submit"], #customerForm input[type="submit"]'
+  );
 
   try {
+    if (submitButton) submitButton.disabled = true;
+
     setMessage("डेमो आवेदन सेव हो रहा है...");
 
-    const response = await fetch(
-      API_BASE + "/submit-application",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(customerData)
-      }
-    );
+    const result = await apiRequest("/submit-application", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name,
+        mobile,
+        loanType,
+        loanAmount: Number(loanAmount),
+        returnYear,
+        percentage
+      })
+    });
 
-    const result = await response.json();
-
-    if (!response.ok || result.success === false) {
+    if (!result.application) {
       throw new Error(
-        result.message || "आवेदन सेव नहीं हो सका।"
+        "सर्वर से आवेदन की पुष्टि नहीं मिली।"
       );
     }
 
     resetForm();
-    setMessage("डेमो आवेदन सफलतापूर्वक सेव हुआ!");
+    setMessage(
+      "डेमो आवेदन सफलतापूर्वक सेव हुआ। Application ID: " +
+      result.application.id
+    );
   } catch (error) {
     console.error("Submit error:", error);
     setMessage(
-      error.message || "API कनेक्शन चेक करें।",
+      error.message || "आवेदन सेव नहीं हो सका।",
       "error"
     );
+  } finally {
+    if (submitButton) submitButton.disabled = false;
   }
 }
 
-// मोबाइल से डेमो स्टेटस चेक
+// मोबाइल नंबर से डेमो स्टेटस चेक करें
 async function checkStatus() {
   const mobileInput = document.getElementById("mobileNumber");
   const result = document.getElementById("statusResult");
 
-  if (!mobileInput || !result) return;
+  if (!mobileInput || !result) {
+    console.error(
+      "Status form में mobileNumber या statusResult ID नहीं मिली।"
+    );
+    return;
+  }
 
   const mobile = mobileInput.value.trim();
   result.replaceChildren();
@@ -146,19 +201,10 @@ async function checkStatus() {
   result.textContent = "डेमो स्टेटस लोड हो रहा है...";
 
   try {
-    const response = await fetch(
-      API_BASE +
+    const data = await apiRequest(
       "/check-application?mobile=" +
       encodeURIComponent(mobile)
     );
-
-    const data = await response.json();
-
-    if (!response.ok || data.success === false) {
-      throw new Error(
-        data.message || "स्टेटस लोड नहीं हुआ।"
-      );
-    }
 
     if (!data.application) {
       result.textContent =
@@ -207,18 +253,19 @@ async function checkStatus() {
   } catch (error) {
     console.error("Status error:", error);
     result.textContent =
-      "API से संपर्क नहीं हो सका। बाद में कोशिश करें।";
+      error.message || "स्टेटस लोड नहीं हुआ।";
   }
 }
 
 window.checkStatus = checkStatus;
 
-// स्क्रिप्ट शुरू करें
+// फॉर्म को केवल एक बार जोड़ें
 function initializeScript() {
   const form = document.getElementById("customerForm");
 
-  if (form) {
+  if (form && !form.dataset.submitHandlerAttached) {
     form.addEventListener("submit", handleCustomerSubmit);
+    form.dataset.submitHandlerAttached = "true";
   }
 }
 
