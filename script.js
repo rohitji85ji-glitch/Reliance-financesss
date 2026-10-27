@@ -42,11 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const loanAmount = Number(amountText);
     const percentage = rateText === "" ? 0 : Number(rateText);
 
-    // "2 Years" या "2" दोनों स्वीकार होंगे
     const match = periodText.match(/^\s*(\d+(?:\.\d+)?)/);
     const returnYear = match ? Number(match[1]) : NaN;
 
-    // Form validation
+    // Validation
     if (!name || !mobile || !loanType) {
       showMessage("नाम, मोबाइल और Loan Type भरें।");
       return;
@@ -57,29 +56,17 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (
-      !amountText ||
-      !Number.isFinite(loanAmount) ||
-      loanAmount <= 0
-    ) {
+    if (!amountText || !Number.isFinite(loanAmount) || loanAmount <= 0) {
       showMessage("Loan Amount सही भरें।");
       return;
     }
 
-    if (
-      !periodText ||
-      !Number.isFinite(returnYear) ||
-      returnYear <= 0
-    ) {
+    if (!periodText || !Number.isFinite(returnYear) || returnYear <= 0) {
       showMessage("Return Period में 2 Years जैसा मान भरें।");
       return;
     }
 
-    if (
-      !Number.isFinite(percentage) ||
-      percentage < 0 ||
-      percentage > 100
-    ) {
+    if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
       showMessage("Percentage 0 से 100 के बीच भरें।");
       return;
     }
@@ -135,29 +122,25 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
+      // Form केवल सफल सेव होने पर खाली होगा
       showMessage(
         डेटा सफलतापूर्वक सेव हो गया। Application ID: ${record.id},
         true
       );
 
-      // केवल सफल सेव होने के बाद फॉर्म खाली करें
       form.reset();
 
       if (customerList) {
         const item = document.createElement("div");
-        item.textContent =
-          ${name} — ${mobile} — ID: ${record.id};
-
+        item.textContent = ${name} — ${mobile} — ID: ${record.id};
         customerList.prepend(item);
       }
 
     } catch (error) {
       console.error("Submit error:", error);
 
-      showMessage(
-        डेटा सेव नहीं हुआ: ${error.message}
-      );
-
+      // असफल होने पर फॉर्म खाली नहीं किया जाएगा
+      showMessage(डेटा सेव नहीं हुआ: ${error.message});
     } finally {
       if (button) {
         button.disabled = false;
