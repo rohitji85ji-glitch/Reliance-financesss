@@ -18,14 +18,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (!form) {
-    console.error("customerForm नहीं मिला।");
+    console.error("customerForm नहीं मिला। HTML में ID चेक करें।");
     return;
   }
 
-  const value = id =>
-    document.getElementById(id)?.value?.trim() || "";
+  function value(id) {
+    return document.getElementById(id)?.value?.trim() || "";
+  }
 
-  form.addEventListener("submit", async event => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const button = form.querySelector('[type="submit"]');
@@ -40,30 +41,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const loanAmount = Number(amountText);
     const percentage = rateText === "" ? 0 : Number(rateText);
+
+    // "2 Years" या "2" दोनों स्वीकार होंगे
     const match = periodText.match(/^\s*(\d+(?:\.\d+)?)/);
     const returnYear = match ? Number(match[1]) : NaN;
 
+    // Form validation
     if (!name || !mobile || !loanType) {
       showMessage("नाम, मोबाइल और Loan Type भरें।");
       return;
     }
 
     if (!/^\d{10}$/.test(mobile)) {
-      showMessage("डेमो मोबाइल नंबर 10 अंकों का होना चाहिए।");
+      showMessage("मोबाइल नंबर 10 अंकों का होना चाहिए।");
       return;
     }
 
-    if (!amountText || !Number.isFinite(loanAmount) || loanAmount <= 0) {
+    if (
+      !amountText ||
+      !Number.isFinite(loanAmount) ||
+      loanAmount <= 0
+    ) {
       showMessage("Loan Amount सही भरें।");
       return;
     }
 
-    if (!periodText || !Number.isFinite(returnYear) || returnYear <= 0) {
-      showMessage("Return Period में 2 Years जैसे मान भरें।");
+    if (
+      !periodText ||
+      !Number.isFinite(returnYear) ||
+      returnYear <= 0
+    ) {
+      showMessage("Return Period में 2 Years जैसा मान भरें।");
       return;
     }
 
-    if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+    if (
+      !Number.isFinite(percentage) ||
+      percentage < 0 ||
+      percentage > 100
+    ) {
       showMessage("Percentage 0 से 100 के बीच भरें।");
       return;
     }
@@ -76,48 +92,72 @@ document.addEventListener("DOMContentLoaded", () => {
 
       showMessage("डेटा सेव किया जा रहा है...", true);
 
-      const response = await fetch(${API_BASE}/submit-application, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          mobile,
-          loanType,
-          loanAmount,
-          returnYear,
-          percentage
-        })
-      });
+      const response = await fetch(
+        ${API_BASE}/submit-application,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            name,
+            mobile,
+            loanType,
+            loanAmount,
+            returnYear,
+            percentage
+          })
+        }
+      );
 
-      const text = await response.text();
+      const responseText = await response.text();
       let result;
 
       try {
-        result = JSON.parse(text);
+        result = JSON.parse(responseText);
       } catch {
-        throw new Error(Backend का जवाब पढ़ा नहीं जा सका (HTTP ${response.status}));
+        throw new Error(
+          सर्वर का जवाब पढ़ा नहीं जा सका (HTTP ${response.status})
+        );
       }
 
       if (!response.ok || result.success !== true) {
-        throw new Error(result.message || HTTP ${response.status});
+        throw new Error(
+          result.message || HTTP ${response.status}
+        );
       }
 
       const record = result.application || {};
+
       if (record.id == null) {
-        throw new Error("Application ID नहीं मिली।");
+        throw new Error(
+          "सर्वर ने Application ID नहीं भेजी। सर्वर कोड चेक करें।"
+        );
       }
 
-      showMessage(डेटा सेव हो गया। Application ID: ${record.id}, true);
+      showMessage(
+        डेटा सफलतापूर्वक सेव हो गया। Application ID: ${record.id},
+        true
+      );
+
+      // केवल सफल सेव होने के बाद फॉर्म खाली करें
       form.reset();
 
       if (customerList) {
         const item = document.createElement("div");
-        item.textContent = ${name} — ${mobile} — ID: ${record.id};
+        item.textContent =
+          ${name} — ${mobile} — ID: ${record.id};
+
         customerList.prepend(item);
       }
+
     } catch (error) {
       console.error("Submit error:", error);
-      showMessage(डेटा सेव नहीं हुआ: ${error.message});
+
+      showMessage(
+        डेटा सेव नहीं हुआ: ${error.message}
+      );
+
     } finally {
       if (button) {
         button.disabled = false;
@@ -126,5 +166,5 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  console.log("Admin script loaded.");
+  console.log("Admin script loaded successfully.");
 });
