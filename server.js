@@ -10,33 +10,25 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// हर आने वाली request को Render Logs में दिखाएँ
 app.use((req, res, next) => {
-  console.log(
-    new Date().toISOString(),
-    req.method,
-    req.path
-  );
+  console.log(new Date().toISOString(), req.method, req.path);
   next();
 });
 
-// Supabase configuration
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase =
   url && key ? createClient(url, key) : null;
 
-// API home
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Demo API is running.",
+    message: "API is running",
     supabaseConfigured: Boolean(supabase)
   });
 });
 
-// Health check
 app.get("/health", (req, res) => {
   res.json({
     success: true,
@@ -45,17 +37,14 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Submit application using dummy/demo information
 app.post("/submit-application", async (req, res) => {
-  console.log("Submit application request received");
+  console.log("POST /submit-application received");
 
   try {
     if (!supabase) {
-      console.error("Supabase environment variables are missing");
-
       return res.status(503).json({
         success: false,
-        message: "Supabase is not configured."
+        message: "Supabase configuration missing."
       });
     }
 
@@ -73,19 +62,24 @@ app.post("/submit-application", async (req, res) => {
     const cleanLoanType = String(loanType || "").trim();
 
     const amount = Number(loanAmount);
-    const year = Number(returnYear);
-    const rate = Number(percentage ?? 0);
+    const rate = percentage === "" || percentage == null
+      ? 0
+      : Number(percentage);
+
+    // Accept both "2" and "2 Years"
+    const yearMatch = String(returnYear ?? "").match(
+      /^\s*(\d+(?:\.\d+)?)/
+    );
+    const year = yearMatch ? Number(yearMatch[1]) : NaN;
 
     if (
       !cleanName ||
       !/^\d{10}$/.test(cleanMobile) ||
       !cleanLoanType ||
-      loanAmount === "" ||
       loanAmount == null ||
+      loanAmount === "" ||
       !Number.isFinite(amount) ||
       amount <= 0 ||
-      returnYear === "" ||
-      returnYear == null ||
       !Number.isFinite(year) ||
       year <= 0 ||
       !Number.isFinite(rate) ||
@@ -94,7 +88,7 @@ app.post("/submit-application", async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid demo application details."
+        message: "Invalid form details. Check all fields."
       });
     }
 
@@ -111,48 +105,43 @@ app.post("/submit-application", async (req, res) => {
     const { data, error } = await supabase
       .from("applications")
       .insert([row])
-      .select("id,name,mobile,loan_type,loan_amount,return_year,percentage,status,created_at")
+      .select("*")
       .single();
 
     if (error) {
-      // वास्तविक database error केवल server logs में
-      console.error("Supabase insert failed:", {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      });
+      console.error("SUPABASE INSERT ERROR:", error);
 
       return res.status(500).json({
         success: false,
-        message: "Could not save application. Check backend logs."
+        message: "Database save failed. Check Render Logs.",
+        code: error.code || null
       });
     }
 
-    console.log("Application saved successfully. ID:", data.id);
+    console.log("APPLICATION SAVED:", data.id);
 
     return res.status(201).json({
       success: true,
       message: "Application saved successfully.",
       application: data
     });
+
   } catch (error) {
-    console.error("Submit route error:", error.message);
+    console.error("SUBMIT ROUTE ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Server error."
+      message: "Server error while saving application."
     });
   }
 });
 
-// Check application using demo mobile number
 app.get("/check-application", async (req, res) => {
   try {
     if (!supabase) {
       return res.status(503).json({
         success: false,
-        message: "Supabase is not configured."
+        message: "Supabase configuration missing."
       });
     }
 
@@ -161,22 +150,20 @@ app.get("/check-application", async (req, res) => {
     if (!/^\d{10}$/.test(mobile)) {
       return res.status(400).json({
         success: false,
-        message: "Enter a valid demo mobile number."
+        message: "Enter a valid 10-digit mobile number."
       });
     }
 
     const { data, error } = await supabase
       .from("applications")
-      .select(
-        "id,name,mobile,loan_type,loan_amount,return_year,percentage,status,created_at"
-      )
+      .select("*")
       .eq("mobile", mobile)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) {
-      console.error("Supabase check failed:", error.message);
+      console.error("CHECK APPLICATION ERROR:", error);
 
       return res.status(500).json({
         success: false,
@@ -188,8 +175,9 @@ app.get("/check-application", async (req, res) => {
       success: true,
       application: data || null
     });
+
   } catch (error) {
-    console.error("Check route error:", error.message);
+    console.error("CHECK ROUTE ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -198,7 +186,6 @@ app.get("/check-application", async (req, res) => {
   }
 });
 
-// Demo account details
 app.get("/account-details", (req, res) => {
   res.json({
     success: true,
@@ -206,9 +193,8 @@ app.get("/account-details", (req, res) => {
   });
 });
 
-// Unknown route
 app.use((req, res) => {
-  console.warn("API route not found:", req.method, req.path);
+  console.warn("API ROUTE NOT FOUND:", req.method, req.path);
 
   res.status(404).json({
     success: false,
@@ -216,18 +202,15 @@ app.use((req, res) => {
   });
 });
 
-// Invalid JSON handler
 app.use((error, req, res, next) => {
   if (error instanceof SyntaxError && "body" in error) {
-    console.error("Invalid JSON request body");
-
     return res.status(400).json({
       success: false,
       message: "Invalid JSON request."
     });
   }
 
-  console.error("Unexpected server error:", error.message);
+  console.error("UNEXPECTED SERVER ERROR:", error);
 
   return res.status(500).json({
     success: false,
@@ -236,6 +219,6 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log("Demo API listening on port " + PORT);
+  console.log("API listening on port", PORT);
   console.log("Supabase configured:", Boolean(supabase));
 });
