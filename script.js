@@ -45,7 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const match = periodText.match(/^\s*(\d+(?:\.\d+)?)/);
     const returnYear = match ? Number(match[1]) : NaN;
 
-    // Validation
     if (!name || !mobile || !loanType) {
       showMessage("नाम, मोबाइल और Loan Type भरें।");
       return;
@@ -122,7 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
-      // Form केवल सफल सेव होने पर खाली होगा
       showMessage(
         डेटा सफलतापूर्वक सेव हो गया। Application ID: ${record.id},
         true
@@ -138,8 +136,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch (error) {
       console.error("Submit error:", error);
-
-      // असफल होने पर फॉर्म खाली नहीं किया जाएगा
       showMessage(डेटा सेव नहीं हुआ: ${error.message});
     } finally {
       if (button) {
