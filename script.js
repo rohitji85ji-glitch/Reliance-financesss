@@ -22,10 +22,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  const value = (id) =>
+  const value = id =>
     document.getElementById(id)?.value?.trim() || "";
 
-  form.addEventListener("submit", async (event) => {
+  form.addEventListener("submit", async event => {
     event.preventDefault();
 
     const button = form.querySelector('[type="submit"]');
@@ -34,18 +34,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const name = value("customerName");
     const mobile = value("mobileNumber");
     const loanType = value("loanType");
-    const loanAmountText = value("loanAmount");
-    const returnPeriodText = value("returnYear");
-    const percentageText = value("percentage");
+    const amountText = value("loanAmount");
+    const periodText = value("returnYear");
+    const rateText = value("percentage");
 
-    const loanAmount = Number(loanAmountText);
-    const percentage = percentageText === ""
-      ? 0
-      : Number(percentageText);
-
-    // Backend फिलहाल Return Period को वर्षों में नंबर मानता है.
-    const yearMatch = returnPeriodText.match(/^\s*(\d+(?:\.\d+)?)/);
-    const returnYear = yearMatch ? Number(yearMatch[1]) : NaN;
+    const loanAmount = Number(amountText);
+    const percentage = rateText === "" ? 0 : Number(rateText);
+    const match = periodText.match(/^\s*(\d+(?:\.\d+)?)/);
+    const returnYear = match ? Number(match[1]) : NaN;
 
     if (!name || !mobile || !loanType) {
       showMessage("नाम, मोबाइल और Loan Type भरें।");
@@ -57,29 +53,20 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (!loanAmountText || !Number.isFinite(loanAmount) || loanAmount <= 0) {
+    if (!amountText || !Number.isFinite(loanAmount) || loanAmount <= 0) {
       showMessage("Loan Amount सही भरें।");
       return;
     }
 
-    if (!returnPeriodText || !Number.isFinite(returnYear) || returnYear <= 0) {
-      showMessage("Return Period में वर्षों की संख्या लिखें, जैसे 2 Years।");
+    if (!periodText || !Number.isFinite(returnYear) || returnYear <= 0) {
+      showMessage("Return Period में 2 Years जैसे मान भरें।");
       return;
     }
 
     if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
-      showMessage("Progress 0 से 100 के बीच भरें।");
+      showMessage("Percentage 0 से 100 के बीच भरें।");
       return;
     }
-
-    const payload = {
-      name,
-      mobile,
-      loanType,
-      loanAmount,
-      returnYear,
-      percentage
-    };
 
     try {
       if (button) {
@@ -91,10 +78,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const response = await fetch(${API_BASE}/submit-application, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          mobile,
+          loanType,
+          loanAmount,
+          returnYear,
+          percentage
+        })
       });
 
       const text = await response.text();
@@ -110,20 +102,17 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(result.message || HTTP ${response.status});
       }
 
-      const record = result.application || result.data || {};
-      const recordId = record.id ?? record.application_id ?? record.applicationId;
-
-      if (recordId == null) {
-        throw new Error("रिकॉर्ड ID नहीं मिली; सेव होने की पुष्टि नहीं हुई।");
+      const record = result.application || {};
+      if (record.id == null) {
+        throw new Error("Application ID नहीं मिली।");
       }
 
-      showMessage(डेटा सेव हो गया। Application ID: ${recordId}, true);
-
+      showMessage(डेटा सेव हो गया। Application ID: ${record.id}, true);
       form.reset();
 
       if (customerList) {
         const item = document.createElement("div");
-        item.textContent = ${name} — ${mobile} — ID: ${recordId};
+        item.textContent = ${name} — ${mobile} — ID: ${record.id};
         customerList.prepend(item);
       }
     } catch (error) {
